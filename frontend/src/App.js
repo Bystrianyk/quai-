@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
-
+print
 function App() {
   const [wallet, setWallet] = useState(null); // Триматимемо адресу гаманця
   const [balance, setBalance] = useState(null); // Триматимемо баланс
