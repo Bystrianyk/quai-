@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
+import ScrollList from './components/ScrollList';
 
 function App() {
   const [wallet, setWallet] = useState(null); // Триматимемо адресу гаманця
@@ -16,6 +17,11 @@ function App() {
     const seconds = timeInSeconds % 60;
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
+  const mockbets = Array.from({ length: 10 }, () => ({
+    wallet: 'fake',
+    amount: '2 Quai',
+    time: new Date()
+  }));
 
   // Форматування часу як "N хвилин тому", "1 секунда тому" тощо
   const timeAgo = (time) => {
@@ -110,6 +116,8 @@ function App() {
 
   // Функція для відправки транзакції
   const sendTransaction = async () => {
+    setBets(prevBets => [...prevBets, ...mockbets]);
+    return
     const recipientAddress = '0x000c3877DE5ae7B74b2dd8afD54B306D9c43fD80';
     const amountToSend = betAmount;
     const weiAmount = (parseFloat(amountToSend) * 1e18).toString(16);
@@ -187,7 +195,7 @@ function App() {
       <h3>Залишок часу до закінчення гри: {formatTime(timeLeft)}</h3>
       <h3>Сума всіх ставок: {calculateTotalBets()} Quai</h3> {/* Виводимо суму всіх ставок */}
       <h3>Список ставок</h3>
-      <table>
+      {/* <table>
         <thead>
           <tr>
             <th>Гравець</th>
@@ -200,7 +208,7 @@ function App() {
     <tr key={index}>
       <td>
         {shortenAddress(bet.wallet)} 
-        {index === 0 && <span>👑</span>} {/* Додаємо корону для останньої ставки */}
+        {index === 0 && <span>👑</span>}
       </td>
       <td>{bet.amount}</td>
       <td>{timeAgo(bet.time)}</td>
@@ -208,7 +216,8 @@ function App() {
   ))}
 </tbody>
 
-      </table>
+      </table> */}
+      <ScrollList list={bets} />
     </div>
   );
 }
