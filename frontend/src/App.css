@@ -1,0 +1,115 @@
+.App {
+  text-align: center;
+}
+
+.button-container {
+  margin: 20px;
+}
+
+button {
+  margin: 5px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #ddd;
+}
+
+.info {
+  margin: 20px 0;
+}
+
+table {
+  width: 100%; /* Налаштовуємо ширину таблиці */
+  margin: 0 auto;
+  border-collapse: collapse;
+  table-layout: fixed; /* Для фіксованої ширини стовпців */
+}
+
+table, th, td {
+  border: 1px solid black;
+}
+
+th, td {
+  padding: 8px;
+  text-align: center;
+}
+
+.winner {
+  background-color: #ffeb3b;
+}
+
+.winner td {
+  font-weight: bold;
+}
+
+.connect-wallet-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: red;  /* Червоний фон */
+  color: white;           /* Білий шрифт */
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.connect-wallet-btn:hover {
+  background-color: darkred; /* Зміна кольору при наведенні */
+}
+
+.wallet-balance {
+  font-size: 16px;
+  font-weight: bold;
+  color: #4caf50; /* Зелений колір для балансу */
+}
+
+.wallet-info {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+}
+
+/* Додаємо стилізацію для останньої ставки з іконкою корони */
+.last-bet-crown {
+  color: gold;
+  font-weight: bold;
+}
+.bet-table-container {
+  max-height: 300px; /* Висота контейнера таблиці */
+  overflow-y: auto; /* Прокручування по вертикалі */
+  margin-top: 20px;
+  margin-bottom: 20px; /* Додаємо відступ знизу, щоб контейнер не злипався з іншими елементами */
+}
+
+.timer-block {
+  background-color: #333;
+  color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  max-width: 300px;
+  margin: 20px auto;
+}
+
+.timer-title {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.timer-countdown {
+  font-size: 32px;
+  color: red;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.timer-subtitle {
+  font-size: 14px;
+}
+
