@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import ScrollList from './components/ScrollList';
+import getRandomItems from './helpers/getRandomItems'
+import sendMoney from './helpers/sendMoney'
 
 function App() {
   const [wallet, setWallet] = useState(null); // Триматимемо адресу гаманця
@@ -17,11 +19,7 @@ function App() {
     const seconds = timeInSeconds % 60;
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
-  const mockbets = Array.from({ length: 10 }, () => ({
-    wallet: 'fake',
-    amount: '2 Quai',
-    time: new Date()
-  }));
+  
 
   // Форматування часу як "N хвилин тому", "1 секунда тому" тощо
   const timeAgo = (time) => {
@@ -80,6 +78,43 @@ function App() {
     }
   }, [wallet]); // Залежність на wallet
 
+  useEffect(() => {
+    let timeoutId;
+  
+    const checkTime = () => {
+      if (bets.length) {
+        const time = 10 * 1000; // 10 second 
+        const oneHourLaterBet = new Date(bets[0].time.getTime() + time);
+        const currentTime = new Date();
+        
+        if (oneHourLaterBet <= currentTime) {
+          const winnerWallet = bets.shift().wallet;
+          const randomWinners = 10
+          const randomWallets = getRandomItems(bets, randomWinners, winnerWallet);
+          const totalAmount = bets.reduce((sum, item) => sum + item.amount, 0);
+  
+          sendMoney(winnerWallet, totalAmount * 0.6)
+          sendMoney('my_wallet', totalAmount * 0.1)
+          for (wallet in randomWallets) {
+            sendMoney(wallet, (totalAmount * 0.3) / randomWinners)
+          }
+          setBets([]);
+  
+          clearTimeout(timeoutId);
+        }
+      }
+  
+      timeoutId = setTimeout(checkTime, 1000);
+    };
+  
+    checkTime();
+  
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  
+  }, [bets.length]);
+
   // Функція для отримання балансу
   const getBalance = async (address) => {
     const options = {
@@ -109,14 +144,18 @@ function App() {
     }
   };
 
-  // Допоміжна функція для скорочення адреси
   const shortenAddress = (address) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   // Функція для відправки транзакції
   const sendTransaction = async () => {
-    setBets(prevBets => [...prevBets, ...mockbets]);
+    const mockbets = Array.from({ length: 10 }, () => ({
+      wallet: 'fake',
+      amount: 2,
+      time: new Date()
+    }));
+    setBets(prevBets => [ ...mockbets, ...prevBets,]);
     return
     const recipientAddress = '0x000c3877DE5ae7B74b2dd8afD54B306D9c43fD80';
     const amountToSend = betAmount;
@@ -156,7 +195,6 @@ function App() {
     }
   };
 
-  // Додавання ставки до таблиці
   const addBet = () => {
     const newBet = {
       wallet: wallet,
@@ -172,7 +210,6 @@ function App() {
     setBetAmount(prevBetAmount => prevBetAmount + 1);
   };
 
-  // Функція для обчислення суми всіх ставок
   const calculateTotalBets = () => {
     return bets.reduce((total, bet) => total + parseFloat(bet.amount), 0);
   };
@@ -195,28 +232,7 @@ function App() {
       <h3>Залишок часу до закінчення гри: {formatTime(timeLeft)}</h3>
       <h3>Сума всіх ставок: {calculateTotalBets()} Quai</h3> {/* Виводимо суму всіх ставок */}
       <h3>Список ставок</h3>
-      {/* <table>
-        <thead>
-          <tr>
-            <th>Гравець</th>
-            <th>Сума ставки</th>
-            <th>Час</th>
-          </tr>
-        </thead>
-        <tbody>
-  {bets.map((bet, index) => (
-    <tr key={index}>
-      <td>
-        {shortenAddress(bet.wallet)} 
-        {index === 0 && <span>👑</span>}
-      </td>
-      <td>{bet.amount}</td>
-      <td>{timeAgo(bet.time)}</td>
-    </tr>
-  ))}
-</tbody>
-
-      </table> */}
+    
       <ScrollList list={bets} />
     </div>
   );

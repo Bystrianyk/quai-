@@ -34,7 +34,6 @@ const BetItem = styled.div`
   }
 `;
 
-// Styled span for the player address
 const PlayerAddress = styled.span`
   font-weight: bold;
   color: #333;
@@ -42,15 +41,16 @@ const PlayerAddress = styled.span`
 
 const ScrollList = (props) => {
     const { list } = props;
-    const shortenAddress = (address) => {
+
+      const shortenAddress = (address) => {
         return address.slice(0, 6) + '...' + address.slice(-4);
       };
       
-      // Function to format time (you can replace with your actual logic)
       const timeAgo = (time) => {
         const seconds = Math.floor((new Date() - new Date(time)) / 1000);
-        return `${seconds} seconds ago`;  // Example format
+        return `${seconds} seconds ago`;
       };
+
       return (
         <div>
         <ScrollableContainer>
@@ -63,7 +63,7 @@ const ScrollList = (props) => {
             <BetItem key={index}>
               <PlayerAddress>
                 {shortenAddress(bet.wallet)} 
-                {index === 0 && <span> 👑</span>}  {/* Crown for the first item */}
+                {index === 0 && <span> 👑</span>}
               </PlayerAddress>
               <span>{bet.amount}</span>
               <span>{timeAgo(bet.time)}</span>
