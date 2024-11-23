@@ -11,7 +11,7 @@ function App() {
   const [bets, setBets] = useState([]); // Список ставок
   const [timeLeft, setTimeLeft] = useState(0); // Час до закінчення гри в секундах
   const timerRef = useRef(null); // Зберігає інтервал таймера
-  const time = 10 * 1000; // 10 second 
+  const time = 60*60* 1000; // 1 година 
 
   // Форматування часу в години:хвилини:секунди
   const formatTime = (timeInSeconds) => {
@@ -45,9 +45,10 @@ function App() {
     if (window.pelagus && window.pelagus.request) {
       try {
         const accounts = await window.pelagus.request({ method: 'quai_requestAccounts' });
-        const balance = await getBalance(accounts[0]); // Оновлюємо баланс
+        const accountBalance = await getBalance(accounts[0]); // Оновлюємо баланс
         setWallet(accounts[0]); // Зберігаємо адресу гаманця
-        setBalance(balance); // Оновлюємо баланс
+        setBalance(accountBalance); // Оновлюємо баланс
+        console.log(accounts)
       } catch (error) {
         console.error('Error connecting to Pelagus Wallet:', error);
       }
@@ -121,9 +122,9 @@ function App() {
     try {
       const response = await fetch('https://rpc.quai.network/cyprus1/', options);
       const result = await response.json();
-
+    
       if (result && result.result) {
-        return parseFloat(result.result) / 1e18;
+        return parseInt(result.result) / 1e18;
       } else {
         console.error("Не вдалося отримати баланс");
         return 0;
@@ -192,7 +193,7 @@ function App() {
   const addBet = () => {
     const newBet = {
       wallet: wallet,
-      amount: `${betAmount} Quai`,
+      amount: betAmount,
       time: new Date(),
     };
 
