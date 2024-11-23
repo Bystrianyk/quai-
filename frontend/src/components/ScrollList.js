@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 const ScrollableContainer = styled.div`
@@ -48,8 +48,34 @@ const ScrollList = (props) => {
       
       const timeAgo = (time) => {
         const seconds = Math.floor((new Date() - new Date(time)) / 1000);
-        return `${seconds} seconds ago`;
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+    
+        if (hours > 0) {
+          return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        }
+        if (minutes > 0) {
+          return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        }
+        return `${seconds} second${seconds > 1 ? 's' : ''} ago`;
       };
+    
+      const getUpdatedTime = (time) => {
+        return timeAgo(time);
+      };
+    
+      // Set up a state for current time
+      const [currentTime, setCurrentTime] = useState(Date.now());
+    
+      // Use useEffect to update the time every second
+      useEffect(() => {
+        const intervalId = setInterval(() => {
+          setCurrentTime(Date.now()); // Update the current time every second
+        }, 1000);
+    
+        // Clean up the interval when the component unmounts
+        return () => clearInterval(intervalId);
+      }, []);
 
       return (
         <div>
@@ -66,7 +92,7 @@ const ScrollList = (props) => {
                 {index === 0 && <span> 👑</span>}
               </PlayerAddress>
               <span>{bet.amount}</span>
-              <span>{timeAgo(bet.time)}</span>
+              <span>{getUpdatedTime(bet.time)}</span>
             </BetItem>
           ))}
         </ScrollableContainer>
