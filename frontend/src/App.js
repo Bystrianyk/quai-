@@ -11,6 +11,7 @@ function App() {
   const [bets, setBets] = useState([]); // Список ставок
   const [timeLeft, setTimeLeft] = useState(0); // Час до закінчення гри в секундах
   const timerRef = useRef(null); // Зберігає інтервал таймера
+  const time = 10 * 1000; // 10 second 
 
   // Форматування часу в години:хвилини:секунди
   const formatTime = (timeInSeconds) => {
@@ -21,29 +22,18 @@ function App() {
   };
   
 
-  // Форматування часу як "N хвилин тому", "1 секунда тому" тощо
-  const timeAgo = (time) => {
-    const secondsAgo = Math.floor((new Date() - new Date(time)) / 1000);
-
-    if (secondsAgo < 60) return `${secondsAgo} секунд${secondsAgo === 1 ? 'а' : ''} тому`;
-    const minutesAgo = Math.floor(secondsAgo / 60);
-    if (minutesAgo < 60) return `${minutesAgo} хвилин${minutesAgo === 1 ? 'а' : ''} тому`;
-    const hoursAgo = Math.floor(minutesAgo / 60);
-    return `${hoursAgo} годин${hoursAgo === 1 ? 'а' : ''} тому`;
-  };
-
   // Функція для старту або перезапуску таймера
   const startOrResetTimer = () => {
-    clearInterval(timerRef.current); // Зупиняємо поточний таймер, якщо він є
-    setTimeLeft(3600); // Встановлюємо таймер на 1 годину (3600 секунд)
+    clearInterval(timerRef.current); // Stop any existing timer
+    setTimeLeft(time / 1000); 
 
-    // Запускаємо новий таймер
+    // Start a new timer
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev > 0) {
           return prev - 1;
         } else {
-          clearInterval(timerRef.current); // Зупиняємо таймер, коли час вийшов
+          clearInterval(timerRef.current); // Stop the timer when it reaches 0
           return 0;
         }
       });
@@ -83,24 +73,24 @@ function App() {
   
     const checkTime = () => {
       if (bets.length) {
-        const time = 10 * 1000; // 10 second 
         const oneHourLaterBet = new Date(bets[0].time.getTime() + time);
         const currentTime = new Date();
         
         if (oneHourLaterBet <= currentTime) {
+          clearTimeout(timeoutId);
+          const totalAmount = bets.reduce((sum, item) => sum + item.amount, 0);
           const winnerWallet = bets.shift().wallet;
           const randomWinners = 10
           const randomWallets = getRandomItems(bets, randomWinners, winnerWallet);
-          const totalAmount = bets.reduce((sum, item) => sum + item.amount, 0);
-  
+
           sendMoney(winnerWallet, totalAmount * 0.6)
           sendMoney('my_wallet', totalAmount * 0.1)
-          for (wallet in randomWallets) {
-            sendMoney(wallet, (totalAmount * 0.3) / randomWinners)
+          for (const wallet in randomWallets) {
+            sendMoney(wallet, (totalAmount * 0.3) / randomWallets.length)
           }
           setBets([]);
-  
-          clearTimeout(timeoutId);
+          setBetAmount(1)
+          return;
         }
       }
   
@@ -150,13 +140,17 @@ function App() {
 
   // Функція для відправки транзакції
   const sendTransaction = async () => {
-    const mockbets = Array.from({ length: 10 }, () => ({
-      wallet: 'fake',
-      amount: 2,
-      time: new Date()
-    }));
-    setBets(prevBets => [ ...mockbets, ...prevBets,]);
-    return
+    
+    // const mockbets ={
+    //   wallet: `${betAmount}`,
+    //   amount: betAmount,
+    //   time: new Date()
+    // }
+    // setBets(prevBets => [mockbets, ...prevBets]);
+    // setBetAmount(betAmount + 1);
+    // startOrResetTimer();
+    // return
+    
     const recipientAddress = '0x000c3877DE5ae7B74b2dd8afD54B306D9c43fD80';
     const amountToSend = betAmount;
     const weiAmount = (parseFloat(amountToSend) * 1e18).toString(16);
@@ -202,12 +196,8 @@ function App() {
       time: new Date(),
     };
 
-    setBets(prevBets => {
-      const updatedBets = [newBet, ...prevBets];
-      return updatedBets.slice(0, 10);
-    });
-
-    setBetAmount(prevBetAmount => prevBetAmount + 1);
+    setBets(prevBets => [newBet, ...prevBets]);
+    setBetAmount(betAmount + 1);
   };
 
   const calculateTotalBets = () => {
