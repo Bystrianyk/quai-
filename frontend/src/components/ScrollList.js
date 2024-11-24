@@ -2,20 +2,21 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 const ScrollableContainer = styled.div`
-  width: 100%;
+  width: 80%;
   height: 300px;
+  margin: 0 auto;
+
   overflow-y: auto;
-  border: 1px solid #ddd;
-  background-color: #f9f9f9;
+  background-color: #1C1E2F;
 `;
 
 const TableHeader = styled.div`
+  height: 78px;
   display: flex;
   position: sticky;
   top: 0;
-  background-color: #f2f2f2;
+  background-color: #222437;
   z-index: 1;
-  border-bottom: 2px solid #ddd;
   padding: 10px;
   font-weight: bold;
   justify-content: space-between;
@@ -81,15 +82,13 @@ const ScrollList = (props) => {
         <div>
         <ScrollableContainer>
         <TableHeader>
-        <div>Гравець</div>
-        <div>Сума ставки</div>
-        <div>Час</div>
+        <div>Cowboy</div>
       </TableHeader>
           {list.map((bet, index) => (
             <BetItem key={index}>
               <PlayerAddress>
                 {shortenAddress(bet.wallet)} 
-                {index === 0 && <span> 👑</span>}
+                {index === 0 && <span> 👑 CURRENT LEADER</span>}
               </PlayerAddress>
               <span>{bet.amount}</span>
               <span>{getUpdatedTime(bet.time)}</span>
