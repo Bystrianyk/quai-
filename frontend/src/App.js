@@ -84,7 +84,6 @@ function App() {
           const randomWallets = getRandomItems(bets, randomWinners, winnerWallet);
 
           sendMoney(winnerWallet, totalAmount * 0.6)
-          sendMoney('my_wallet', totalAmount * 0.1)
           for (const wallet in randomWallets) {
             sendMoney(wallet, (totalAmount * 0.3) / randomWallets.length)
           }
@@ -141,19 +140,8 @@ function App() {
   // Функція для відправки транзакції
   const sendTransaction = async () => {
     
-    // const mockbets ={
-    //   wallet: `${betAmount}`,
-    //   amount: betAmount,
-    //   time: new Date()
-    // }
-    // setBets(prevBets => [mockbets, ...prevBets]);
-    // setBetAmount(betAmount + 1);
-    // startOrResetTimer();
-    // return
-    
     const recipientAddress = '0x000c3877DE5ae7B74b2dd8afD54B306D9c43fD80';
-    const amountToSend = betAmount;
-    const weiAmount = (parseFloat(amountToSend) * 1e18).toString(16);
+    const weiAmount = (parseFloat(betAmount) * 1e18).toString(16);
 
     if (window.pelagus && window.pelagus.request) {
       try {
@@ -192,7 +180,7 @@ function App() {
   const addBet = () => {
     const newBet = {
       wallet: wallet,
-      amount: `${betAmount} Quai`,
+      amount: betAmount,
       time: new Date(),
     };
 
