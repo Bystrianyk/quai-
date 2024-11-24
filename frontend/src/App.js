@@ -11,7 +11,7 @@ function App() {
   const [bets, setBets] = useState([]); // Список ставок
   const [timeLeft, setTimeLeft] = useState(0); // Час до закінчення гри в секундах
   const timerRef = useRef(null); // Зберігає інтервал таймера
-  const time = 60*60* 1000; // 1 година 
+  const time = 60* 1000; // 1 година 
 
   // Форматування часу в години:хвилини:секунди
   const formatTime = (timeInSeconds) => {
@@ -206,6 +206,7 @@ function App() {
   };
 
   return (
+    
     <div className="App">
       <h1>Game DApp</h1>
       <div className="wallet-info">
@@ -216,6 +217,10 @@ function App() {
           {wallet ? shortenAddress(wallet) : 'Connect Wallet'}
         </button>
       </div>
+      
+
+      
+      
       <div>
         <h3>Ставка: {betAmount} Quai</h3>
         <button onClick={sendTransaction}>Cowboy</button>
