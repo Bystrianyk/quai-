@@ -206,8 +206,13 @@ function App() {
   };
   
   return (
+    <div className="min-h-screen flex flex-col bg-blue-600 overflow-x-clip">
+      <header className="w-full z-20 backdrop-blur-3xl">
+
+      </header>
     <div className="App">
-      <header>
+      <header className="w-full z-20 backdrop-blur-3xl">
+        <nav className="mx-auto container p-4">
         <div className="wallet-info">
           {balance !== null ? (
             <div className="balance-display">
@@ -221,13 +226,13 @@ function App() {
             {wallet ? shortenAddress(wallet) : "Connect Wallet"}
           </button>
         </div>
+        </nav>
       </header>
   
       <main className="flex-grow lg:container lg:pt-28">
         <div className="yeeti-container">
           <div className="yeeti"></div>
-        </div>
-        <div className="yeeti-container">
+      
           <div className="yeeti-4"></div>
         </div>
   
@@ -301,10 +306,11 @@ function App() {
               </div>
             </div>
           </div>
-          <button onClick={sendTransaction}>Cowboy</button>
+          <button className="pushable w-full h-16 bg-primary text-black text-[36px] font-silkscreen leading-[36px]" onClick={sendTransaction}>Cowboy</button>
           <ScrollList list={bets} />
         </div>
       </main>
+    </div>
     </div>
   );
 }

@@ -83,7 +83,17 @@ const ScrollList = (props) => {
         <div>
         <ScrollableContainer>
         <TableHeader>
-        <div><h2>Cowboy</h2></div>
+        <div><p className='
+      
+      
+      text-lg
+      
+      
+      text-white
+      
+      
+      
+       font-silkscreen '>Cowboy</p></div>
       </TableHeader>
           {list.map((bet, index) => (
             <BetItem key={index}>
