@@ -204,154 +204,98 @@ function App() {
   const calculateTotalBets = () => {
     return bets.reduce((total, bet) => total + parseFloat(bet.amount), 0);
   };
-
+  
   return (
-    <div>
-    
-      <div className="App">
-        <header>
-          <div className="wallet-info">
-            {balance !== null ? (
-              <div className="balance-display">
-                <span>
-                  {balance !== null ? ` ${balance} Quai` : "N/A Quai"}{" "}
-                </span>
-                <img src={logo} alt="logo" className="logo-img" />
-              </div>
-            ) : (
-              <img src={logo} alt="loading logo" className="logo-img" />
-            )}
-            <button className="connect-wallet-btn" onClick={requestAccounts}>
-              {wallet ? shortenAddress(wallet) : "Connect Wallet"}
-            </button>
-          </div>
-        </header>
+    <div className="App">
+      <header>
+        <div className="wallet-info">
+          {balance !== null ? (
+            <div className="balance-display">
+              <span>{balance !== null ? `${balance} Quai` : "N/A Quai"} </span>
+              <img src={logo} alt="logo" className="logo-img" />
+            </div>
+          ) : (
+            <img src={logo} alt="loading logo" className="logo-img" />
+          )}
+          <button className="connect-wallet-btn" onClick={requestAccounts}>
+            {wallet ? shortenAddress(wallet) : "Connect Wallet"}
+          </button>
         </div>
- <main className="flex-grow lg:container lg:pt-28">     
-        <div className="flex-grow lg:container lg:pt-28">
+      </header>
+  
+      <main className="flex-grow lg:container lg:pt-28">
         <div className="yeeti-container">
           <div className="yeeti"></div>
         </div>
         <div className="yeeti-container">
           <div className="yeeti-4"></div>
         </div>
-
+  
         <div className="backdrop-div">
-          <div >
-            <div className="flex flex-col md:flex-row justify-center items-start md:space-y-0 space-y-4 md:h-48 xl:h-auto">
-              <div className="w-full md:pr-2 h-full">
-                <div className="bg-newBlue-400 p-6 w-full h-full">
-                  <div className="flex flex-row justify-start">
-                    <div className="flex flex-row justify-between w-full">
-                      <div className="flex flex-row items-center">
-                        <div className="flex">
-                          <div className="blob green w-[18px] h-[18px] mr-[9px]  bg-secondary"></div>
-                        </div>
-                        <div>
-                          <p className="text-sm text-secondary font-silkscreen ">
-                            LIVE PRIZE POOL
-                          </p>
-                        </div>
+          <div className="flex flex-col md:flex-row justify-center items-start md:space-y-0 space-y-4 md:h-48 xl:h-auto">
+            <div className="w-full md:pr-2 h-full">
+              <div className="bg-newBlue-400 p-6 w-full h-full">
+                <div className="flex flex-row justify-start">
+                  <div className="flex flex-row justify-between w-full">
+                    <div className="flex flex-row items-center">
+                      <div className="flex">
+                        <div className="blob green w-[18px] h-[18px] mr-[9px] bg-secondary"></div>
                       </div>
-                      <div className="flex flex-row items-center">
-                        <div className="flex space-x-2">
-                          <div className="w-12 h-1 bg-gray-500 relative overflow-hidden">
-                            <div className="absolute top-0 left-0 h-full bg-white animate-progress-fade"></div>
-                          </div>
-                          <div className="w-12 h-1 bg-gray-500 relative overflow-hidden">
-                            <div className="absolute top-0 left-0 h-full bg-white "></div>
-                          </div>
-                        </div>
+                      <div>
+                        <p className="text-sm text-secondary font-silkscreen">
+                          LIVE PRIZE POOL
+                        </p>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex flex-row justify-start pt-2 pb-2">
-                    <div>
-                      <p
-                        className="text-lg text-primary font-silkscreen ">
-                        <h3> {calculateTotalBets()} Quai</h3>{" "}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-row justify-start">
-                    <div>
-                      <p
-                        className="
-      text-sm
-      
-      
-      
-      
-      text-white
-      
-      
-      
-       font-silkscreen "
-                      >
-                        TO BE RECEIVED BY THE WINNER
-                      </p>
+                    <div className="flex flex-row items-center">
+                      <div className="flex space-x-2">
+                        <div className="w-12 h-1 bg-gray-500 relative overflow-hidden">
+                          <div className="absolute top-0 left-0 h-full bg-white animate-progress-fade"></div>
+                        </div>
+                        <div className="w-12 h-1 bg-gray-500 relative overflow-hidden">
+                          <div className="absolute top-0 left-0 h-full bg-white"></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
+                <div className="flex flex-row justify-start pt-2 pb-2">
+                  <div>
+                    <h3 className="text-lg text-primary font-silkscreen">
+                      {calculateTotalBets()} Quai
+                    </h3>
+                  </div>
+                </div>
+                <div className="flex flex-row justify-start">
+                  <div>
+                    <p className="text-sm text-white font-silkscreen">
+                      TO BE RECEIVED BY THE WINNER
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="w-full md:pl-2 h-full">
-                <div className="bg-newBlue-400 p-6 w-full h-full">
-                  <div className="flex flex-row justify-start">
-                    <div>
-                      <p
-                        className="
-      text-sm
-      
-      
-      
-      
-      text-white
-      
-      
-      
-       font-silkscreen "
-                      >
-                        TIME REMAINING
-                      </p>
-                    </div>
+            </div>
+            <div className="w-full md:pl-2 h-full">
+              <div className="bg-newBlue-400 p-6 w-full h-full">
+                <div className="flex flex-row justify-start">
+                  <div>
+                    <p className="text-sm text-white font-silkscreen">
+                      TIME REMAINING
+                    </p>
                   </div>
-                  <div className="flex flex-row justify-start pt-2 pb-2">
-                    <div>
-                      <p
-                        className="
-      
-      
-      text-lg
-      text-primary
-      
-      
-      
-      
-      
-       font-silkscreen "
-                      >
-                        {formatTime(timeLeft)}
-                      </p>
-                    </div>
+                </div>
+                <div className="flex flex-row justify-start pt-2 pb-2">
+                  <div>
+                    <p className="text-lg text-primary font-silkscreen">
+                      {formatTime(timeLeft)}
+                    </p>
                   </div>
-                  <div className="flex flex-row justify-start">
-                    <div>
-                      <p
-                        className="
-      text-sm
-      
-      
-      
-      
-      text-white
-      
-      
-      
-       font-silkscreen "
-                      >
-                        UNTIL THE GAME ENDS AND THE LAST  WINS
-                      </p>
-                    </div>
+                </div>
+                <div className="flex flex-row justify-start">
+                  <div>
+                    <p className="text-sm text-white font-silkscreen">
+                      UNTIL THE GAME ENDS AND THE LAST Cowboy WINS
+                    </p>
                   </div>
                 </div>
               </div>
@@ -360,10 +304,8 @@ function App() {
           <button onClick={sendTransaction}>Cowboy</button>
           <ScrollList list={bets} />
         </div>
-      </div>
-      </main> 
+      </main>
     </div>
-    
   );
 }
 
