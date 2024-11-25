@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 const ScrollableContainer = styled.div`
-  width: 80%;
   height: 300px;
   margin: 0 auto;
 
@@ -22,6 +21,7 @@ const TableHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  
 `;
 
 const BetItem = styled.div`
@@ -82,7 +82,7 @@ const ScrollList = (props) => {
         <div>
         <ScrollableContainer>
         <TableHeader>
-        <div>Cowboy</div>
+        <div><h2>Cowboy</h2></div>
       </TableHeader>
           {list.map((bet, index) => (
             <BetItem key={index}>
