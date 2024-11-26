@@ -114,7 +114,8 @@ header {
 }
 
 .logo-img {
-  width: 40px; /* Адаптований розмір логотипу */
+  margin-left: 50px;
+  width: 60px; /* Адаптований розмір логотипу */
   height: auto;
 }
 
@@ -128,6 +129,7 @@ header {
   font-family: 'Silkscreen', sans-serif;
   font-weight: bold;
   border-radius: 8px;
+  margin-right: 50px;
 }
 
 

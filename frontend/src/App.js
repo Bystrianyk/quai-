@@ -4,6 +4,8 @@ import ScrollList from "./components/ScrollList";
 import getRandomItems from "./helpers/getRandomItems";
 import sendMoney from "./helpers/sendMoney";
 import logo from "./images/logo.png";
+import { ethers } from 'ethers';
+
 
 function App() {
   const [wallet, setWallet] = useState(null); // Триматимемо адресу гаманця
