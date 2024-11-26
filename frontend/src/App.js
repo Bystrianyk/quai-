@@ -204,30 +204,37 @@ function App() {
   const calculateTotalBets = () => {
     return bets.reduce((total, bet) => total + parseFloat(bet.amount), 0);
   };
+
+  
   
   return (
     <div className="min-h-screen flex flex-col bg-blue-600 overflow-x-clip">
-      <header className="w-full z-20 backdrop-blur-3xl">
 
-      </header>
     <div className="App">
-      <header className="w-full z-20 backdrop-blur-3xl">
-        <nav className="mx-auto container p-4">
-        <div className="wallet-info">
-          {balance !== null ? (
-            <div className="balance-display">
-              <span>{balance !== null ? `${balance} Quai` : "N/A Quai"} </span>
-              <img src={logo} alt="logo" className="logo-img" />
-            </div>
-          ) : (
-            <img src={logo} alt="loading logo" className="logo-img" />
-          )}
-          <button className="connect-wallet-btn" onClick={requestAccounts}>
-            {wallet ? shortenAddress(wallet) : "Connect Wallet"}
-          </button>
-        </div>
-        </nav>
-      </header>
+    <header className="w-full z-20 backdrop-blur-3xl header-container">
+  <img src={logo} alt="logo" className="logo-img" />
+  <div className="wallet-info">
+    {balance !== null ? (
+      <div className="balance-display">
+        <span className="
+      text-sm
+      
+      
+      
+      
+      text-white
+      
+      
+      
+       font-silkscreen ">{balance !== null ? `${Number(balance).toFixed(2)} Quai` : "N/A Quai"} </span>
+      </div>
+    ) : null}
+    <button className="connect-wallet-btn" onClick={requestAccounts}>
+      {wallet ? shortenAddress(wallet) : "Connect Wallet"}
+    </button>
+  </div>
+</header>
+
   
       <main className="flex-grow lg:container lg:pt-28">
         <div className="yeeti-container">
