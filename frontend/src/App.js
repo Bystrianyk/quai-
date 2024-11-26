@@ -203,6 +203,8 @@ function App() {
     setBetAmount(betAmount + 1);
   };
 
+  
+
   const calculateTotalBets = () => {
     return bets.reduce((total, bet) => total + parseFloat(bet.amount), 0);
   };
