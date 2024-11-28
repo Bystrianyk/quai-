@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { parseUnits, formatUnits } from 'quais';
+import { BrowserProvider, Contract } from 'quais';
+
 import "./App.css";
 import ScrollList from "./components/ScrollList";
 import getRandomItems from "./helpers/getRandomItems";
@@ -269,6 +271,10 @@ function App() {
     const minutes = Math.floor(milliseconds / 60000);
     const seconds = ((milliseconds % 60000) / 1000).toFixed(0);
     return `${minutes}:${(seconds < 10 ? '0' : '') + seconds}`;
+  };
+
+  const calculateTotalBets = () => {
+    return bets.reduce((total, bet) => total + parseFloat(bet.amount), 0);
   };
 
   return (
