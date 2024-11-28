@@ -1,216 +1,276 @@
 import React, { useState, useEffect, useRef } from "react";
+import { parseUnits, formatUnits } from 'quais';
 import "./App.css";
 import ScrollList from "./components/ScrollList";
 import getRandomItems from "./helpers/getRandomItems";
 import sendMoney from "./helpers/sendMoney";
 import logo from "./images/logo.png";
-import { ethers } from 'ethers';
 
+const contractAddress = "0x004965c0500bd966E744dd5F4c2d38C7EbbFFC1f"; // Адреса розгорнутого контракту
+const contractABI = [ 
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "player",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "BetPlaced",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "winner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "prize",
+        "type": "uint256"
+      }
+    ],
+    "name": "GameEnded",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "FIXED_ADDRESS",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "GAME_DURATION",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "bets",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "player",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "currentBetAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "endGame",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getBetCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lastBetTime",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lastWinner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "placeBet",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+];
 
 function App() {
-  const [wallet, setWallet] = useState(null); // Триматимемо адресу гаманця
-  const [balance, setBalance] = useState(null); // Триматимемо баланс
-  const [betAmount, setBetAmount] = useState(1); // Ставка гравця
-  const [bets, setBets] = useState([]); // Список ставок
-  const [timeLeft, setTimeLeft] = useState(0); // Час до закінчення гри в секундах
-  const timerRef = useRef(null); // Зберігає інтервал таймера
-  const time = 60 * 1000; // 1 година
+  const [wallet, setWallet] = useState(null);
+  const [balance, setBalance] = useState(null);
+  const [betAmount, setBetAmount] = useState(1);
+  const [bets, setBets] = useState([]);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [contract, setContract] = useState(null);
+  const timerRef = useRef(null);
+  const time = 60 * 1000; // 60 секунд
 
-  // Форматування часу в години:хвилини:секунди
-  const formatTime = (timeInSeconds) => {
-    const hours = Math.floor(timeInSeconds / 3600);
-    const minutes = Math.floor((timeInSeconds % 3600) / 60);
-    const seconds = timeInSeconds % 60;
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
-      2,
-      "0"
-    )}:${String(seconds).padStart(2, "0")}`;
-  };
+  useEffect(() => {
+    const initContract = async () => {
+      if (window.pelagus && window.pelagus.request) {
+        try {
+          // Підключення до Pelagus Wallet через BrowserProvider
+          const provider = new quais.BrowserProvider(window.pelagus);
+          const signer = provider.getSigner();
 
-  // Функція для старту або перезапуску таймера
-  const startOrResetTimer = () => {
-    clearInterval(timerRef.current); // Stop any existing timer
-    setTimeLeft(time / 1000);
+          // Підключення до контракту
+          const contractInstance = new quais.Contract(contractAddress, contractABI, signer);
+          setContract(contractInstance);
 
-    // Start a new timer
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev > 0) {
-          return prev - 1;
-        } else {
-          clearInterval(timerRef.current); // Stop the timer when it reaches 0
-          return 0;
+          // Отримання балансу гаманця
+          const balance = await signer.getBalance();
+          setBalance(formatUnits(balance, 18)); // Відображення балансу в форматі Quai
+
+        } catch (error) {
+          console.error("Помилка підключення до контракту:", error);
         }
-      });
-    }, 1000);
-  };
+      } else {
+        alert("Pelagus Wallet не знайдено");
+      }
+    };
 
-  // Підключення до гаманця та отримання балансу
+    initContract();
+  }, []);
   const requestAccounts = async () => {
-    if (window.pelagus && window.pelagus.request) {
-      try {
-        const accounts = await window.pelagus.request({
-          method: "quai_requestAccounts",
-        });
-        const accountBalance = await getBalance(accounts[0]); // Оновлюємо баланс
-        setWallet(accounts[0]); // Зберігаємо адресу гаманця
-        setBalance(accountBalance); // Оновлюємо баланс
-        console.log(accounts);
-      } catch (error) {
-        console.error("Error connecting to Pelagus Wallet:", error);
-      }
-    } else {
+    if (!window.pelagus) {
       alert("Pelagus Wallet не знайдено");
+      return;
+    }
+  
+    try {
+      const accounts = await window.pelagus.request({ method: "eth_requestAccounts" });
+      setWallet(accounts[0]);
+    } catch (error) {
+      console.error("Помилка при отриманні акаунтів:", error);
     }
   };
-
-  // Слухаємо подію зміни акаунта
-  useEffect(() => {
-    if (window.pelagus) {
-      window.pelagus.on("accountsChanged", (accounts) => {
-        if (accounts && accounts[0] !== wallet) {
-          setWallet(accounts[0]); // Оновлюємо адресу гаманця при зміні акаунта
-          getBalance(accounts[0]).then((balance) => setBalance(balance)); // Оновлюємо баланс
-        }
-      });
+  
+  // Функція для розміщення ставки
+  const placeBet = async () => {
+    if (!contract) {
+      alert('Контракт не підключено');
+      return;
     }
-  }, [wallet]); // Залежність на wallet
-
-  useEffect(() => {
-    let timeoutId;
-
-    const checkTime = () => {
-      if (bets.length) {
-        const oneHourLaterBet = new Date(bets[0].time.getTime() + time);
-        const currentTime = new Date();
-
-        if (oneHourLaterBet <= currentTime) {
-          clearTimeout(timeoutId);
-          const totalAmount = bets.reduce((sum, item) => sum + item.amount, 0);
-          const winnerWallet = bets.shift().wallet;
-          const randomWinners = 10;
-          const randomWallets = getRandomItems(
-            bets,
-            randomWinners,
-            winnerWallet
-          );
-
-          sendMoney(winnerWallet, totalAmount * 0.6);
-          for (const wallet in randomWallets) {
-            sendMoney(wallet, (totalAmount * 0.3) / randomWallets.length);
-          }
-          setBets([]);
-          setBetAmount(1);
-          return;
-        }
-      }
-
-      timeoutId = setTimeout(checkTime, 1000);
-    };
-
-    checkTime();
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [bets.length]);
-
-  // Функція для отримання балансу
-  const getBalance = async (address) => {
-    const options = {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        method: "quai_getBalance",
-        params: [address, "latest"],
-        id: 1,
-      }),
-    };
 
     try {
-      const response = await fetch(
-        "https://rpc.quai.network/cyprus1/",
-        options
-      );
-      const result = await response.json();
-
-      if (result && result.result) {
-        return parseInt(result.result) / 1e18;
-      } else {
-        console.error("Не вдалося отримати баланс");
-        return 0;
-      }
-    } catch (err) {
-      console.error("Помилка при отриманні балансу:", err);
-      return 0;
+      // Переводимо ставку в одиниці (Quai має 18 десяткових розрядів)
+      const betAmountInUnits = parseUnits(betAmount.toString(), 18);
+      const tx = await contract.placeBet({ value: betAmountInUnits });
+      await tx.wait();
+      console.log('Ставка успішно розміщена');
+      // Оновлення ставок (можливо вам потрібно буде витягнути ставки з контракту)
+      setBets([...bets, { wallet: '0xYourWalletAddress', amount: betAmount, time: Date.now() }]);
+    } catch (error) {
+      console.error('Помилка під час розміщення ставки:', error);
     }
   };
 
-  const shortenAddress = (address) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
-
-  // Функція для відправки транзакції
-  const sendTransaction = async () => {
-    const recipientAddress = "0x000c3877DE5ae7B74b2dd8afD54B306D9c43fD80";
-    const weiAmount = (parseFloat(betAmount) * 1e18).toString(16);
-
-    if (window.pelagus && window.pelagus.request) {
-      try {
-        const accounts = await window.pelagus.request({
-          method: "quai_requestAccounts",
-        });
-        const transactionParameters = {
-          from: accounts[0],
-          to: recipientAddress,
-          value: "0x" + weiAmount,
-          gasLimit: "0x5208",
-          gasPrice: "0x3b9aca00",
-        };
-
-        const txHash = await window.pelagus.request({
-          method: "quai_sendTransaction",
-          params: [transactionParameters],
-        });
-
-        console.log("Транзакція надіслана:", txHash);
-        addBet(); // Додаємо ставку в список
-        startOrResetTimer(); // Стартуємо або перезапускаємо таймер
-      } catch (error) {
-        console.error("Помилка надсилання транзакції:", error);
-
-        // Перевіряємо, чи була відхилена транзакція
-        if (error.code === 4001) {
-          alert("Транзакцію було скасовано користувачем.");
-        } else {
-          alert("Помилка при відправці транзакції. Спробуйте ще раз.");
-        }
-      }
-    } else {
-      alert("Гаманець Pelagus не знайдено.");
+  // Функція для оновлення таймера
+  useEffect(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
     }
+
+    timerRef.current = setInterval(() => {
+      const timeRemaining = time - (Date.now() % time);
+      setTimeLeft(timeRemaining);
+    }, 1000);
+
+    return () => clearInterval(timerRef.current);
+  }, [time]);
+
+  // Форматування часу для відображення
+  const formatTime = (milliseconds) => {
+    const minutes = Math.floor(milliseconds / 60000);
+    const seconds = ((milliseconds % 60000) / 1000).toFixed(0);
+    return `${minutes}:${(seconds < 10 ? '0' : '') + seconds}`;
   };
 
-  const addBet = () => {
-    const newBet = {
-      wallet: wallet,
-      amount: betAmount,
-      time: new Date(),
-    };
-
-    setBets((prevBets) => [newBet, ...prevBets]);
-    setBetAmount(betAmount + 1);
-  };
-
-  
-
-  const calculateTotalBets = () => {
-    return bets.reduce((total, bet) => total + parseFloat(bet.amount), 0);
-  };
-
-  
-  
   return (
     <div className="min-h-screen flex flex-col bg-blue-600 overflow-x-clip">
 
@@ -317,7 +377,7 @@ function App() {
               </div>
             </div>
           </div>
-          <button className="pushable w-full h-16 bg-primary text-black text-[36px] font-silkscreen leading-[36px]" onClick={sendTransaction}>Cowboy</button>
+          <button className="pushable w-full h-16 bg-primary text-black text-[36px] font-silkscreen leading-[36px]" onClick={placeBet}>Cowboy</button>
           <ScrollList list={bets} />
         </div>
       </main>
