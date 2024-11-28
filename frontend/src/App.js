@@ -196,17 +196,17 @@ function App() {
     const initContract = async () => {
       if (window.pelagus && window.pelagus.request) {
         try {
-          // Підключення до Pelagus Wallet через BrowserProvider
-          const provider = new quais.BrowserProvider(window.pelagus);
-          const signer = provider.getSigner();
+          const accounts = await window.pelagus.request({
+            method: "quai_requestAccounts",
+          });
+          const accountBalance = await getBalance(accounts[0]); // Оновлюємо баланс
+          setWallet(accounts[0]); // Зберігаємо адресу гаманця
+          setBalance(accountBalance); // Оновлюємо баланс
+          console.log(accounts);
 
           // Підключення до контракту
           const contractInstance = new quais.Contract(contractAddress, contractABI, signer);
           setContract(contractInstance);
-
-          // Отримання балансу гаманця
-          const balance = await signer.getBalance();
-          setBalance(formatUnits(balance, 18)); // Відображення балансу в форматі Quai
 
         } catch (error) {
           console.error("Помилка підключення до контракту:", error);
@@ -265,6 +265,53 @@ function App() {
 
     return () => clearInterval(timerRef.current);
   }, [time]);
+
+    // Функція для отримання балансу
+    const getBalance = async (address) => {
+      const options = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "quai_getBalance",
+          params: [address, "latest"],
+          id: 1,
+        }),
+      };
+  
+      try {
+        const response = await fetch(
+          "https://rpc.quai.network/cyprus1/",
+          options
+        );
+        const result = await response.json();
+  
+        if (result && result.result) {
+          return parseInt(result.result) / 1e18;
+        } else {
+          console.error("Не вдалося отримати баланс");
+          return 0;
+        }
+      } catch (err) {
+        console.error("Помилка при отриманні балансу:", err);
+        return 0;
+      }
+    };
+  
+    const shortenAddress = (address) => {
+      return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    };
+      // Слухаємо подію зміни акаунта
+  useEffect(() => {
+    if (window.pelagus) {
+      window.pelagus.on("accountsChanged", (accounts) => {
+        if (accounts && accounts[0] !== wallet) {
+          setWallet(accounts[0]); // Оновлюємо адресу гаманця при зміні акаунта
+          getBalance(accounts[0]).then((balance) => setBalance(balance)); // Оновлюємо баланс
+        }
+      });
+    }
+  }, [wallet]); // Залежність на wallet
 
   // Форматування часу для відображення
   const formatTime = (milliseconds) => {
