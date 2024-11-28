@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { parseUnits, formatUnits } from 'quais';
-import { BrowserProvider, Contract } from 'quais';
-
+import { quais } from "quais";
 import "./App.css";
 import ScrollList from "./components/ScrollList";
 import getRandomItems from "./helpers/getRandomItems";
@@ -9,7 +8,7 @@ import sendMoney from "./helpers/sendMoney";
 import logo from "./images/logo.png";
 
 const contractAddress = "0x004965c0500bd966E744dd5F4c2d38C7EbbFFC1f"; // Адреса розгорнутого контракту
-const contractABI = [ 
+const contractABI = [
   {
     "inputs": [],
     "stateMutability": "nonpayable",
@@ -205,6 +204,8 @@ function App() {
           console.log(accounts);
 
           // Підключення до контракту
+          const provider = new quais.BrowserProvider(window.pelagus);
+          const signer = provider.getSigner();
           const contractInstance = new quais.Contract(contractAddress, contractABI, signer);
           setContract(contractInstance);
 
@@ -218,53 +219,72 @@ function App() {
 
     initContract();
   }, []);
+
+
   const requestAccounts = async () => {
-    if (!window.pelagus) {
+    if (window.pelagus && window.pelagus.request) {
+      try {
+        const accounts = await window.pelagus.request({
+          method: "quai_requestAccounts",
+        });
+        const accountBalance = await getBalance(accounts[0]); // Оновлюємо баланс
+        setWallet(accounts[0]); // Зберігаємо адресу гаманця
+        setBalance(accountBalance); // Оновлюємо баланс
+        console.log(accounts);
+      } catch (error) {
+        console.error("Error connecting to Pelagus Wallet:", error);
+      }
+    } else {
       alert("Pelagus Wallet не знайдено");
-      return;
-    }
-  
-    try {
-      const accounts = await window.pelagus.request({ method: "eth_requestAccounts" });
-      setWallet(accounts[0]);
-    } catch (error) {
-      console.error("Помилка при отриманні акаунтів:", error);
     }
   };
-  
-  // Функція для розміщення ставки
   const placeBet = async () => {
     if (!contract) {
       alert('Контракт не підключено');
       return;
     }
-
+  
     try {
+      // Перевірка чи є підписувач
+      const provider = new quais.JsonRpcProvider('https://rpc.dev.quai.network/cyprus1');
+      const signer = provider.getSigner();
+  
+      // Підключаємо контракт з підписувачем
+      const contractInstance = new quais.Contract(contractAddress, contractABI, signer);
+  
       // Переводимо ставку в одиниці (Quai має 18 десяткових розрядів)
       const betAmountInUnits = parseUnits(betAmount.toString(), 18);
-      const tx = await contract.placeBet({ value: betAmountInUnits });
+  
+      // Відправляємо транзакцію
+      const tx = await contractInstance.placeBet({ value: betAmountInUnits });
       await tx.wait();
       console.log('Ставка успішно розміщена');
-      // Оновлення ставок (можливо вам потрібно буде витягнути ставки з контракту)
+  
+      // Оновлення ставок
       setBets([...bets, { wallet: '0xYourWalletAddress', amount: betAmount, time: Date.now() }]);
+  
     } catch (error) {
       console.error('Помилка під час розміщення ставки:', error);
     }
   };
+  
+  
+  const startOrResetTimer = () => {
+    clearInterval(timerRef.current); // Stop any existing timer
+    setTimeLeft(time / 1000);
 
-  // Функція для оновлення таймера
-  useEffect(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-
+    // Start a new timer
     timerRef.current = setInterval(() => {
-      const timeRemaining = time - (Date.now() % time);
-      setTimeLeft(timeRemaining);
+      setTimeLeft((prev) => {
+        if (prev > 0) {
+          return prev - 1;
+        } else {
+          clearInterval(timerRef.current); // Stop the timer when it reaches 0
+          return 0;
+        }
+      });
     }, 1000);
-
-    return () => clearInterval(timerRef.current);
-  }, [time]);
+  };
 
     // Функція для отримання балансу
     const getBalance = async (address) => {
@@ -434,6 +454,24 @@ function App() {
           <ScrollList list={bets} />
         </div>
       </main>
+      
+
+
+
+
+    
+    <footer className="p-12 w-full">
+        <ul className="flex flex-wrap items-center mt-3 text-sm font-medium text-gray-500 dark:text-gray-400 sm:mt-0">
+            <li><a href="https://faucet.quai.network/"
+                    target="_blank" className="font-silkscreen mr-4 hover:underline md:mr-6">Faucet</a></li>
+            <li><a href="https://discord.com/invite/vk2EFMfB5n" target="_blank"
+                    className="font-silkscreen mr-4 hover:underline md:mr-6">Discord</a></li>
+            <li><a href="https://x.com/QuaiNetwork" target="_blank"
+                    className="font-silkscreen mr-4 hover:underline md:mr-6">Twitter</a></li>
+            <li><a href="https://marginex.app/" target="_blank"
+                    className="font-silkscreen mr-4 hover:underline md:mr-6">Marginex</a></li>
+        </ul>
+    </footer>
     </div>
     </div>
   );
