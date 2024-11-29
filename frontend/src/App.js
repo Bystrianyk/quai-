@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { parseUnits, formatUnits } from 'quais';
 import { quais } from "quais";
 import "./App.css";
 import ScrollList from "./components/ScrollList";
@@ -196,12 +195,11 @@ function App() {
       if (window.pelagus && window.pelagus.request) {
         try {
           const accounts = await window.pelagus.request({
-            method: "quai_requestAccounts",
+            method: 'quai_requestAccounts',
           });
           const accountBalance = await getBalance(accounts[0]); // Оновлюємо баланс
           setWallet(accounts[0]); // Зберігаємо адресу гаманця
           setBalance(accountBalance); // Оновлюємо баланс
-          console.log(accounts);
 
           // Підключення до контракту
           const provider = new quais.BrowserProvider(window.pelagus);
@@ -210,22 +208,21 @@ function App() {
           setContract(contractInstance);
 
         } catch (error) {
-          console.error("Помилка підключення до контракту:", error);
+          console.error('Помилка підключення до контракту:', error);
         }
       } else {
-        alert("Pelagus Wallet не знайдено");
+        alert('Pelagus Wallet не знайдено');
       }
     };
 
     initContract();
-  }, []);
-
+  }, []);  // Запуск ініціалізації при першому рендері
 
   const requestAccounts = async () => {
     if (window.pelagus && window.pelagus.request) {
       try {
         const accounts = await window.pelagus.request({
-          method: "quai_requestAccounts",
+          method: "quai_requestAccounts",  // Використовуємо правильний метод
         });
         const accountBalance = await getBalance(accounts[0]); // Оновлюємо баланс
         setWallet(accounts[0]); // Зберігаємо адресу гаманця
@@ -238,40 +235,40 @@ function App() {
       alert("Pelagus Wallet не знайдено");
     }
   };
+  
+
   const placeBet = async () => {
     if (!contract) {
       alert('Контракт не підключено');
       return;
     }
-  
+
     try {
       // Перевірка чи є підписувач
-      const provider = new quais.JsonRpcProvider('https://rpc.dev.quai.network/cyprus1');
+      const provider = new quais.JsonRpcProvider('https://rpc.quai.network');
       const signer = provider.getSigner();
-  
+
       // Підключаємо контракт з підписувачем
       const contractInstance = new quais.Contract(contractAddress, contractABI, signer);
-  
+
       // Переводимо ставку в одиниці (Quai має 18 десяткових розрядів)
       const betAmountInUnits = parseUnits(betAmount.toString(), 18);
-  
+
       // Відправляємо транзакцію
       const tx = await contractInstance.placeBet({ value: betAmountInUnits });
       await tx.wait();
       console.log('Ставка успішно розміщена');
-  
+
       // Оновлення ставок
-      setBets([...bets, { wallet: '0xYourWalletAddress', amount: betAmount, time: Date.now() }]);
-  
+      setBets([...bets, { wallet: wallet, amount: betAmount, time: Date.now() }]);
     } catch (error) {
       console.error('Помилка під час розміщення ставки:', error);
     }
   };
-  
-  
+
   const startOrResetTimer = () => {
     clearInterval(timerRef.current); // Stop any existing timer
-    setTimeLeft(time / 1000);
+    setTimeLeft(time / 1000); // Set initial time
 
     // Start a new timer
     timerRef.current = setInterval(() => {
@@ -286,45 +283,46 @@ function App() {
     }, 1000);
   };
 
-    // Функція для отримання балансу
-    const getBalance = async (address) => {
-      const options = {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          method: "quai_getBalance",
-          params: [address, "latest"],
-          id: 1,
-        }),
-      };
-  
-      try {
-        const response = await fetch(
-          "https://rpc.quai.network/cyprus1/",
-          options
-        );
-        const result = await response.json();
-  
-        if (result && result.result) {
-          return parseInt(result.result) / 1e18;
-        } else {
-          console.error("Не вдалося отримати баланс");
-          return 0;
-        }
-      } catch (err) {
-        console.error("Помилка при отриманні балансу:", err);
+  // Функція для отримання балансу
+  const getBalance = async (address) => {
+    const options = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'quai_getBalance',
+        params: [address, 'latest'],
+        id: 1,
+      }),
+    };
+
+    try {
+      const response = await fetch(
+        'https://rpc.quai.network/cyprus1/',
+        options
+      );
+      const result = await response.json();
+
+      if (result && result.result) {
+        return parseInt(result.result) / 1e18;
+      } else {
+        console.error('Не вдалося отримати баланс');
         return 0;
       }
-    };
-  
-    const shortenAddress = (address) => {
-      return `${address.slice(0, 6)}...${address.slice(-4)}`;
-    };
-      // Слухаємо подію зміни акаунта
+    } catch (err) {
+      console.error('Помилка при отриманні балансу:', err);
+      return 0;
+    }
+  };
+
+  const shortenAddress = (address) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  // Слухаємо подію зміни акаунта
   useEffect(() => {
     if (window.pelagus) {
-      window.pelagus.on("accountsChanged", (accounts) => {
+      window.pelagus.on('accountsChanged', (accounts) => {
         if (accounts && accounts[0] !== wallet) {
           setWallet(accounts[0]); // Оновлюємо адресу гаманця при зміні акаунта
           getBalance(accounts[0]).then((balance) => setBalance(balance)); // Оновлюємо баланс
