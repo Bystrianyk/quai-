@@ -75,36 +75,25 @@ function App() {
     }
 
     try {
-      // Створення провайдера
-      const provider = new quais.BrowserProvider(window.pelagus); // Використовуємо гаманець Pelagus
-      const signer = await provider.getSigner(); // Отримуємо підписувача
-
-      // Підключаємо контракт з підписувачем
-      const contractInstance = new quais.Contract(
-        contractAddress,
-        contractABI,
-        signer
-      );
-
-      // Переводимо ставку в одиниці (Quai має 18 десяткових розрядів)
       const betAmountInUnits = quais.parseUnits(betAmount.toString(), 18);
 
-      // Відправляємо транзакцію
-      const tx = await contractInstance.placeBet({ value: betAmountInUnits });
+      const tx = await contract.placeBet({
+        value: betAmountInUnits, // Переконайся, що значення коректно обчислено в одиницях (найменших одиницях, як Wei або Quai)
+      });
+
       console.log("Транзакція ініційована, хеш:", tx.hash);
 
-      // Очікуємо підтвердження транзакції
       await tx.wait();
       console.log("Ставка успішно розміщена");
 
-      // Оновлення ставок
-      setBets([
-        ...bets,
+      // Оновлення ставок (для відображення в UI)
+      setBets((prevBets) => [
         {
-          wallet: wallet, // Короткий формат адреси гаманця
-          amount: betAmount, // Сума ставки
-          time: Date.now(), // Поточний час
+          wallet: wallet,
+          amount: betAmount,
+          time: Date.now(),
         },
+        ...prevBets, // Додаємо нову ставку на початок списку
       ]);
     } catch (error) {
       console.error("Помилка під час розміщення ставки:", error);
