@@ -75,25 +75,27 @@ function App() {
     }
 
     try {
-      // Створення провайдера
-      const provider = new quais.BrowserProvider(window.pelagus); // Використовуємо гаманець Pelagus
-      const signer = await provider.getSigner(); // Отримуємо підписувача
-
-      // Підключаємо контракт з підписувачем
+      // Перевірка підключення до гаманця
+      const provider = new quais.BrowserProvider(window.pelagus);
+      const signer = await provider.getSigner();
       const contractInstance = new quais.Contract(
         contractAddress,
         contractABI,
         signer
       );
 
-      // Переводимо ставку в одиниці (Quai має 18 десяткових розрядів)
+      // Переведення ставки в одиниці (Quai має 18 десяткових розрядів)
       const betAmountInUnits = quais.parseUnits(betAmount.toString(), 18);
 
-      // Відправляємо транзакцію
-      const tx = await contractInstance.placeBet({ value: betAmountInUnits });
+      // Відправка транзакції
+      const tx = await contractInstance.placeBet({
+        value: betAmountInUnits,
+        gasLimit: 300000,
+      });
+
       console.log("Транзакція ініційована, хеш:", tx.hash);
 
-      // Очікуємо підтвердження транзакції
+      // Очікування підтвердження транзакції
       await tx.wait();
       console.log("Ставка успішно розміщена");
 
