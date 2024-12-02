@@ -124,14 +124,14 @@ function App() {
 
       // Оновлення ставок
       setBets((prevBets) => [
-        ...prevBets,
         {
           wallet: wallet,
           amount: betAmount,
           time: Date.now(),
         },
+        ...prevBets,
       ]);
-      startOrResetTimer();
+      startOrResetTimer(3600 * 1000);
     } catch (error) {
       console.log("Помилка під час розміщення ставки:", error);
       if (error.code === "ACTION_REJECTED") {
