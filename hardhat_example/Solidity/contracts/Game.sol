@@ -12,7 +12,7 @@ contract CowboyGame {
 
     Bet[] public bets;
     address public constant FIXED_ADDRESS = 0x000c3877DE5ae7B74b2dd8afD54B306D9c43fD80;
-    uint256 public constant GAME_DURATION = 1 hours;
+    uint256 public constant GAME_DURATION = 10 seconds;
 
     uint256 public lastBetTime;
     address public lastWinner;

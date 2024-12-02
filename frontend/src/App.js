@@ -6,13 +6,13 @@ import getRandomItems from "./helpers/getRandomItems";
 import sendMoney from "./helpers/sendMoney";
 import logo from "./images/logo.png";
 
-const contractAddress = "0x004965c0500bd966E744dd5F4c2d38C7EbbFFC1f"; // Адреса розгорнутого контракту
+const contractAddress = "0x007132e52d38a2B5e756A71BB4d8f43f77c0E684"; // Адреса розгорнутого контракту
 import contractABI from "./contractAbi.json";
 
 function App() {
   const [wallet, setWallet] = useState(null);
   const [balance, setBalance] = useState(null);
-  const [betAmount, setBetAmount] = useState(1);
+  const [betAmount, setBetAmount] = useState(5);
   const [bets, setBets] = useState([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [contract, setContract] = useState(null);
@@ -75,7 +75,6 @@ function App() {
     }
 
     try {
-      // Перевірка підключення до гаманця
       const provider = new quais.BrowserProvider(window.pelagus);
       const signer = await provider.getSigner();
       const contractInstance = new quais.Contract(
@@ -84,10 +83,8 @@ function App() {
         signer
       );
 
-      // Переведення ставки в одиниці (Quai має 18 десяткових розрядів)
       const betAmountInUnits = quais.parseUnits(betAmount.toString(), 18);
 
-      // Відправка транзакції
       const tx = await contractInstance.placeBet({
         value: betAmountInUnits,
         gasLimit: 300000,
@@ -95,7 +92,6 @@ function App() {
 
       console.log("Транзакція ініційована, хеш:", tx.hash);
 
-      // Очікування підтвердження транзакції
       await tx.wait();
       console.log("Ставка успішно розміщена");
 
@@ -103,28 +99,32 @@ function App() {
       setBets([
         ...bets,
         {
-          wallet: wallet, // Короткий формат адреси гаманця
-          amount: betAmount, // Сума ставки
-          time: Date.now(), // Поточний час
+          wallet: wallet,
+          amount: betAmount,
+          time: Date.now(),
         },
       ]);
+
+      // Запуск таймера після розміщення ставки
+      startOrResetTimer();
     } catch (error) {
       console.error("Помилка під час розміщення ставки:", error);
       alert("Помилка під час розміщення ставки. Спробуйте ще раз.");
     }
   };
 
+  // Функція для старту або перезапуску таймера
   const startOrResetTimer = () => {
-    clearInterval(timerRef.current); // Stop any existing timer
-    setTimeLeft(time / 1000); // Set initial time
+    clearInterval(timerRef.current); // Зупиняємо поточний таймер, якщо він є
+    setTimeLeft(3600); // Встановлюємо таймер на 1 годину (3600 секунд)
 
-    // Start a new timer
+    // Запускаємо новий таймер
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev > 0) {
           return prev - 1;
         } else {
-          clearInterval(timerRef.current); // Stop the timer when it reaches 0
+          clearInterval(timerRef.current); // Зупиняємо таймер, коли час вийшов
           return 0;
         }
       });
@@ -199,17 +199,10 @@ function App() {
             {balance !== null ? (
               <div className="balance-display">
                 <span
-                  className="
+                  className=" 
       text-sm
-      
-      
-      
-      
       text-white
-      
-      
-      
-       font-silkscreen "
+      font-silkscreen "
                 >
                   {balance !== null
                     ? `${Number(balance).toFixed(2)} Quai`
@@ -306,6 +299,7 @@ function App() {
             >
               Cowboy
             </button>
+
             <ScrollList list={bets} />
           </div>
         </main>
