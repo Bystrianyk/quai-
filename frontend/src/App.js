@@ -6,54 +6,72 @@ import getRandomItems from "./helpers/getRandomItems";
 import sendMoney from "./helpers/sendMoney";
 import logo from "./images/logo.png";
 
-const contractAddress = "0x004965c0500bd966E744dd5F4c2d38C7EbbFFC1f"; // Адреса розгорнутого контракту
+const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
 import contractABI from "./contractAbi.json";
 
 function App() {
   const [wallet, setWallet] = useState(null);
   const [balance, setBalance] = useState(null);
-  const [betAmount, setBetAmount] = useState(4);
+  const [betAmount, setBetAmount] = useState(1);
   const [bets, setBets] = useState([]);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [contract, setContract] = useState(null);
   const timerRef = useRef(null);
   const time = 60 * 1000; // 60 секунд
 
   useEffect(() => {
     const initContract = async () => {
-      console.log("Ініціалізація контракту...");
       if (window.pelagus && window.pelagus.request) {
         try {
-          console.log("Pelagus Wallet знайдено...");
           const accounts = await window.pelagus.request({
             method: "quai_requestAccounts",
           });
-          console.log("Акаунти отримано:", accounts);
 
           const accountBalance = await getBalance(accounts[0]);
-          console.log("Баланс отримано:", accountBalance);
 
           const provider = new quais.BrowserProvider(window.pelagus);
-          console.log("Провайдер створено:", provider);
 
           const signer = await provider.getSigner();
-          console.log("Сігнер отримано:", signer);
 
           const contractInstance = new quais.Contract(
             contractAddress,
             contractABI,
             signer
           );
-          console.log("Контракт підключено:", contractInstance);
 
+          const betCount = await contractInstance.getBetCount();
+          const betAmount = await contractInstance.currentBetAmount();
+          const lastBetTime = await contractInstance.lastBetTime();
+
+          const bets = [];
+          for (let i = 0; i < betCount; i++) {
+            const bet = await contractInstance.bets(i);
+            const player = bet.player;
+            const amount = quais.formatUnits(bet.amount, 18);
+
+            bets.unshift({
+              wallet: player,
+              amount: amount,
+              time: new Date(Number(bet.timestamp) * 1000),
+            });
+          }
+
+          const timeDifference =
+            new Date(Number(lastBetTime) * 1000).getTime() +
+            3600000 -
+            new Date();
+
+          startOrResetTimer(timeDifference);
           setWallet(accounts[0]);
+          setBetAmount(quais.formatUnits(betAmount, 18));
           setBalance(accountBalance);
           setContract(contractInstance);
+          setBets(bets);
         } catch (error) {
-          console.error("Помилка підключення:", error);
+          console.log("Помилка підключення:", error);
         }
       } else {
-        console.error("Pelagus Wallet не знайдено.");
+        console.log("Pelagus Wallet не знайдено.");
       }
     };
 
@@ -87,24 +105,12 @@ function App() {
 
     try {
       console.log("Початок розміщення ставки...");
-      const provider = new quais.BrowserProvider(window.pelagus);
-      console.log("Провайдер створено:", provider);
 
-      const signer = await provider.getSigner();
-      console.log("Сігнер отримано:", signer);
-
-      const contractInstance = new quais.Contract(
-        contractAddress,
-        contractABI,
-        signer
-      );
-      console.log("Контракт підключено:", contractInstance);
+      console.log("Контракт підключено:", contract);
 
       const betAmountInUnits = quais.parseUnits(betAmount.toString(), 18);
-      console.log("Сума ставки в одиницях:", betAmountInUnits);
 
-      console.log("Підготовка транзакції...");
-      const tx = await contractInstance.placeBet({
+      const tx = await contract.placeBet({
         value: betAmountInUnits,
         gasLimit: 300000,
       });
@@ -125,27 +131,30 @@ function App() {
           time: Date.now(),
         },
       ]);
+      startOrResetTimer();
     } catch (error) {
-      console.error("Помилка під час розміщення ставки:", error);
+      console.log("Помилка під час розміщення ставки:", error);
       if (error.code === "ACTION_REJECTED") {
-        alert("Користувач відхилив транзакцію");
+        console.log("Користувач скасував транзакцію.");
       } else {
-        alert("Помилка під час розм іщення ставки. Спробуйте ще раз.");
+        console.log("Сталася помилка:", error);
       }
     }
   };
 
-  const startOrResetTimer = () => {
+  const startOrResetTimer = (dynamicTime) => {
     clearInterval(timerRef.current);
-    setTimeLeft(60); // Задаємо 60 секунд на старті
 
-    console.log("Таймер запущено: 1:00"); // Лог для перевірки старту
+    setTimeLeft(dynamicTime);
 
+    console.log("Таймер запущено на: " + new Date(dynamicTime));
+
+    // Start the timer
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
-        console.log(`Час залишився: ${prev}`); // Лог для перевірки, як змінюється час
+        console.log(`Час залишився: ${prev}`);
         if (prev > 0) {
-          return prev - 1;
+          return prev - 1000;
         } else {
           clearInterval(timerRef.current);
           return 0;
@@ -224,14 +233,7 @@ function App() {
                 <span
                   className="
       text-sm
-      
-      
-      
-      
       text-white
-      
-      
-      
        font-silkscreen "
                 >
                   {balance !== null
