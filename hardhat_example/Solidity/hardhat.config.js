@@ -4,15 +4,15 @@
 
 require('@nomicfoundation/hardhat-toolbox')
 const dotenv = require('dotenv')
-dotenv.config({ path: './.env' })
+dotenv.config({ path: './.env' }) // коригуємо шлях до .env, якщо потрібно
 
 module.exports = {
   defaultNetwork: 'cyprus1',
   networks: {
     cyprus1: {
-      url: process.env.RPC_URL,
-      accounts: [process.env.CYPRUS1_PK],
-      chainId: Number(process.env.CHAIN_ID),
+      url: process.env.RPC_URL,  // URL RPC з .env
+      accounts: [process.env.CYPRUS1_PK],  // Приватний ключ з .env
+      chainId: Number(process.env.CHAIN_ID),  // ID мережі з .env
     },
   },
 
@@ -26,22 +26,6 @@ module.exports = {
       evmVersion: 'london',
     },
   },
-
-  // etherscan: {
-  //   apiKey: {
-  //     cyprus1: 'abc',
-  //   },
-  //   customChains: [
-  //     {
-  //       network: 'cyprus1',
-  //       chainId: Number(process.env.CHAINID),
-  //       urls: {
-  //         apiURL: 'https://quaiscan.io/api/v2',
-  //         browserURL: 'https://quaiscan.io/',
-  //       },
-  //     },
-  //   ],
-  // },
 
   paths: {
     sources: './contracts',

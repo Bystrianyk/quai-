@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 
@@ -16,7 +16,7 @@ contract CowboyGame {
 
     uint256 public lastBetTime;
     address public lastWinner;
-    uint256 public currentBetAmount = 1 ether;
+    uint256 public currentBetAmount = 1 * 10**18;  // 1 Quai в одиницях wei
 
     event BetPlaced(address indexed player, uint256 amount, uint256 timestamp);
     event GameEnded(address winner, uint256 prize);
@@ -25,6 +25,8 @@ contract CowboyGame {
         require(block.timestamp > lastBetTime + GAME_DURATION, "Game is still active");
         _;
     }
+
+    constructor() {}
 
     // Функція для внесення ставки
     function placeBet() external payable {
@@ -40,8 +42,8 @@ contract CowboyGame {
             timestamp: block.timestamp
         }));
 
-        // Збільшення наступної ставки
-        currentBetAmount += 1 ether;
+        // Збільшення наступної ставки на 1 Quai
+        currentBetAmount += 1 * 10**18;  // Збільшуємо на 1 Quai (1 * 10^18 wei)
 
         emit BetPlaced(msg.sender, msg.value, block.timestamp);
     }
@@ -79,7 +81,7 @@ contract CowboyGame {
 
         // Скидання гри
         delete bets;
-        currentBetAmount = 1 ether;
+        currentBetAmount = 1 * 10**18;  // Скидаємо на 1 Quai
     }
 
     // Отримання кількості ставок
