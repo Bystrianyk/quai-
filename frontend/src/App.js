@@ -6,13 +6,13 @@ import getRandomItems from "./helpers/getRandomItems";
 import sendMoney from "./helpers/sendMoney";
 import logo from "./images/logo.png";
 
-const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
+const contractAddress = "0x0020583F95174Deb2b04491A2bD17830Cb76EfF4";
 import contractABI from "./contractAbi.json";
 
 function App() {
   const [wallet, setWallet] = useState(null);
   const [balance, setBalance] = useState(null);
-  const [betAmount, setBetAmount] = useState(1);
+  const [betAmount, setBetAmount] = useState(0);
   const [bets, setBets] = useState([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [contract, setContract] = useState(null);
@@ -122,6 +122,11 @@ function App() {
 
       console.log("Ставка успішно розміщена");
 
+      // Оновлення балансу
+      const updatedBalance = await getBalance(wallet);
+      setBalance(updatedBalance);
+      console.log("Оновлений баланс:", updatedBalance);
+
       // Оновлення ставок
       setBets((prevBets) => [
         {
@@ -157,10 +162,40 @@ function App() {
           return prev - 1000;
         } else {
           clearInterval(timerRef.current);
+          endGame();
+
           return 0;
         }
       });
     }, 1000);
+  };
+
+  const endGame = async () => {
+    if (!contract) {
+      console.error("Контракт не підключено");
+      alert("Контракт не підключено");
+      return;
+    }
+
+    try {
+      console.log("Виклик функції endGame...");
+      const tx = await contract.endGame({ gasLimit: 300000 });
+      console.log("Транзакція ініційована:", tx);
+
+      console.log("Очікування підтвердження транзакції...");
+      const receipt = await tx.wait();
+      console.log("Транзакція підтверджена:", receipt);
+
+      console.log("Гра завершена успішно. Виплати здійснено.");
+      alert("Гра завершена успішно!");
+    } catch (error) {
+      console.error("Помилка під час завершення гри:", error);
+      if (error.code === "ACTION_REJECTED") {
+        alert("Користувач відхилив транзакцію");
+      } else {
+        alert("Помилка під час завершення гри. Спробуйте ще раз.");
+      }
+    }
   };
 
   // Функція для отримання балансу
