@@ -2,22 +2,20 @@ import React, { useState, useEffect, useRef } from "react";
 import { quais } from "quais";
 import "./App.css";
 import ScrollList from "./components/ScrollList";
-import getRandomItems from "./helpers/getRandomItems";
-import sendMoney from "./helpers/sendMoney";
 import logo from "./images/logo.png";
+import getBets from "./helpers/getBets";
+import getBetAmount from "./helpers/getBetAmount";
 
-const contractAddress = "0x0020583F95174Deb2b04491A2bD17830Cb76EfF4";
+const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
 import contractABI from "./contractAbi.json";
 
 function App() {
   const [wallet, setWallet] = useState(null);
   const [balance, setBalance] = useState(null);
-  const [betAmount, setBetAmount] = useState(0);
   const [bets, setBets] = useState([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [contract, setContract] = useState(null);
   const timerRef = useRef(null);
-  const time = 60 * 1000; // 60 секунд
 
   useEffect(() => {
     const initContract = async () => {
@@ -39,22 +37,9 @@ function App() {
             signer
           );
 
-          const betCount = await contractInstance.getBetCount();
-          const betAmount = await contractInstance.currentBetAmount();
           const lastBetTime = await contractInstance.lastBetTime();
 
-          const bets = [];
-          for (let i = 0; i < betCount; i++) {
-            const bet = await contractInstance.bets(i);
-            const player = bet.player;
-            const amount = quais.formatUnits(bet.amount, 18);
-
-            bets.unshift({
-              wallet: player,
-              amount: amount,
-              time: new Date(Number(bet.timestamp) * 1000),
-            });
-          }
+          const bets = await getBets(contractInstance);
 
           const timeDifference =
             new Date(Number(lastBetTime) * 1000).getTime() +
@@ -63,7 +48,6 @@ function App() {
 
           startOrResetTimer(timeDifference);
           setWallet(accounts[0]);
-          setBetAmount(quais.formatUnits(betAmount, 18));
           setBalance(accountBalance);
           setContract(contractInstance);
           setBets(bets);
@@ -77,6 +61,32 @@ function App() {
 
     initContract();
   }, []);
+
+  useEffect(() => {
+    const fetchBetData = async () => {
+      try {
+        if (contract) {
+          const lastBetTime = await contract.lastBetTime();
+
+          const bets = await getBets(contract);
+
+          const timeDifference =
+            new Date(Number(lastBetTime) * 1000).getTime() +
+            3600000 -
+            new Date();
+
+          startOrResetTimer(timeDifference);
+          setBets(bets);
+        }
+      } catch (error) {
+        console.error("Error fetching bet data:", error);
+      }
+    };
+    fetchBetData();
+    const intervalId = setInterval(fetchBetData, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [contract]);
 
   const requestAccounts = async () => {
     if (window.pelagus && window.pelagus.request) {
@@ -104,38 +114,23 @@ function App() {
     }
 
     try {
-      console.log("Початок розміщення ставки...");
-
-      console.log("Контракт підключено:", contract);
-
-      const betAmountInUnits = quais.parseUnits(betAmount.toString(), 18);
+      const betAmountInUnits = await getBetAmount(contract);
 
       const tx = await contract.placeBet({
         value: betAmountInUnits,
         gasLimit: 300000,
       });
-      console.log("Транзакція ініційована:", tx);
 
-      console.log("Очікування підтвердження транзакції...");
-      const receipt = await tx.wait();
-      console.log("Транзакція підтверджена:", receipt);
-
+      await tx.wait();
       console.log("Ставка успішно розміщена");
 
-      // Оновлення балансу
       const updatedBalance = await getBalance(wallet);
       setBalance(updatedBalance);
       console.log("Оновлений баланс:", updatedBalance);
 
-      // Оновлення ставок
-      setBets((prevBets) => [
-        {
-          wallet: wallet,
-          amount: betAmount,
-          time: Date.now(),
-        },
-        ...prevBets,
-      ]);
+      const bets = await getBets(contract);
+      setBets(bets);
+
       startOrResetTimer(3600 * 1000);
     } catch (error) {
       console.log("Помилка під час розміщення ставки:", error);
@@ -152,12 +147,8 @@ function App() {
 
     setTimeLeft(dynamicTime);
 
-    console.log("Таймер запущено на: " + new Date(dynamicTime));
-
-    // Start the timer
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
-        console.log(`Час залишився: ${prev}`);
         if (prev > 0) {
           return prev - 1000;
         } else {
@@ -178,14 +169,8 @@ function App() {
     }
 
     try {
-      console.log("Виклик функції endGame...");
       const tx = await contract.endGame({ gasLimit: 300000 });
-      console.log("Транзакція ініційована:", tx);
-
-      console.log("Очікування підтвердження транзакції...");
-      const receipt = await tx.wait();
-      console.log("Транзакція підтверджена:", receipt);
-
+      await tx.wait();
       console.log("Гра завершена успішно. Виплати здійснено.");
       alert("Гра завершена успішно!");
     } catch (error) {
