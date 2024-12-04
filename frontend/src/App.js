@@ -153,34 +153,11 @@ function App() {
           return prev - 1000;
         } else {
           clearInterval(timerRef.current);
-          endGame();
 
           return 0;
         }
       });
     }, 1000);
-  };
-
-  const endGame = async () => {
-    if (!contract) {
-      console.error("Контракт не підключено");
-      alert("Контракт не підключено");
-      return;
-    }
-
-    try {
-      const tx = await contract.endGame({ gasLimit: 300000 });
-      await tx.wait();
-      console.log("Гра завершена успішно. Виплати здійснено.");
-      alert("Гра завершена успішно!");
-    } catch (error) {
-      console.error("Помилка під час завершення гри:", error);
-      if (error.code === "ACTION_REJECTED") {
-        alert("Користувач відхилив транзакцію");
-      } else {
-        alert("Помилка під час завершення гри. Спробуйте ще раз.");
-      }
-    }
   };
 
   // Функція для отримання балансу
