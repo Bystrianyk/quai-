@@ -1,22 +1,34 @@
-// backend/server.js
-require("dotenv").config();
 const express = require("express");
-const walletAuth = require("./walletAuth");
-const gameLogic = require("./gameLogic");
-const db = require("./db");
+const { ethers } = require("ethers");
+require("dotenv").config();
+const contract = require("./contractAbi.json");
 
 const app = express();
-app.use(express.json());
+const port = 3001;
 
-// Маршрут для аутентифікації гравця через гаманець
-app.post("/api/auth", walletAuth.authenticate);
+const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
-// Маршрут для ставки та початку гри
-app.post("/api/placeBet", gameLogic.placeBet);
+app.post("/end-game", async (req, res) => {
+  try {
+    console.log("Calling endGame function...");
 
-// Маршрут для завершення гри та розподілу виграшу
-app.post("/api/endGame", gameLogic.endGame);
+    const tx = await contract.endGame({ gasLimit: 300000 });
+    const receipt = await tx.wait();
 
-// Запуск сервера
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Сервер запущено на порту ${PORT}`));
+    res.status(200).json({
+      message: "Game ended successfully!",
+      transactionHash: receipt.transactionHash,
+    });
+  } catch (error) {
+    console.error("Error calling endGame:", error);
+    res.status(500).json({
+      message: "Error calling endGame.",
+      error: error.message,
+    });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
