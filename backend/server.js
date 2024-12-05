@@ -1,22 +1,61 @@
-// backend/server.js
-require("dotenv").config();
 const express = require("express");
-const walletAuth = require("./walletAuth");
-const gameLogic = require("./gameLogic");
-const db = require("./db");
+require("dotenv").config();
+const { JsonRpcProvider, Contract } = require("quais");
+const contractAbi = require("./contractAbi.json");
+
+const provider = new JsonRpcProvider("https://rpc.quai.network");
+const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS; // Store in your .env file
+
+// const provider = new quais.JsonRpcProvider("https://rpc.quai.network"); // Your provider URL
+// const signer = provider.getSigner();
+// console.log(signer);
+// const wallet = new quais.Wallet(
+//   "0x811d7bd45e5c7fcde02352ed956732d760a263f0ec0ab139f12703cb8ba7e004",
+//   provider
+// ); // Private key for the wallet
 
 const app = express();
-app.use(express.json());
+const port = process.env.PORT;
 
-// Маршрут для аутентифікації гравця через гаманець
-app.post("/api/auth", walletAuth.authenticate);
+const checkAndEndGame = async () => {
+  try {
+    const signer = provider.getSigner(); // Get signer for sending transactions
+    const contract = new Contract(contractAddress, contractAbi, signer);
+    console.log(contract);
+    const lastBetTime = await contract.lastBetTime();
 
-// Маршрут для ставки та початку гри
-app.post("/api/placeBet", gameLogic.placeBet);
+    const lastBetDate = new Date(Number(lastBetTime) * 1000); // Convert from seconds to milliseconds
 
-// Маршрут для завершення гри та розподілу виграшу
-app.post("/api/endGame", gameLogic.endGame);
+    lastBetDate.setHours(lastBetDate.getHours() + 1);
 
-// Запуск сервера
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Сервер запущено на порту ${PORT}`));
+    const now = new Date();
+    console.log(now >= lastBetDate, now, lastBetDate, contractAddress);
+    if (now >= lastBetDate) {
+      console.log("Calling endGame function...");
+
+      const tx = await contract.endGame({ gasLimit: 300000 });
+
+      const receipt = await tx.wait();
+      console.log("Transaction mined:", receipt.transactionHash);
+
+      allowedEndTime.setDate(allowedEndTime.getDate() + 1);
+    } else {
+      console.log(
+        "Not yet time to end the game. Current time:",
+        now,
+        "Allowed end time:",
+        allowedEndTime
+      );
+    }
+  } catch (error) {
+    console.error("Error during the check or calling endGame:", error);
+  }
+};
+
+setInterval(async () => {
+  await checkAndEndGame();
+}, 2000);
+
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
