@@ -21,14 +21,74 @@ function App() {
     const initContract = async () => {
       if (window.pelagus && window.pelagus.request) {
         try {
+          // Отримуємо акаунти з гаманця
           const accounts = await window.pelagus.request({
             method: "quai_requestAccounts",
           });
 
+          if (accounts.length === 0) {
+            console.log("Гаманець не підключено");
+            return;
+          }
+
+          // Отримуємо баланс акаунту
           const accountBalance = await getBalance(accounts[0]);
 
+          // Ініціалізуємо провайдер та підключення до контракту
           const provider = new quais.BrowserProvider(window.pelagus);
+          const signer = await provider.getSigner();
 
+          // Створюємо інстанс контракту
+          const contractInstance = new quais.Contract(
+            contractAddress,
+            contractABI,
+            signer
+          );
+
+          // Отримуємо останній час ставки
+          const lastBetTime = await contractInstance.lastBetTime();
+
+          // Отримуємо ставки
+          const bets = await getBets(contractInstance);
+
+          // Розрахунок часу залишку для таймера
+          const timeDifference =
+            new Date(Number(lastBetTime) * 1000).getTime() +
+            3600000 - // Додаємо 1 годину
+            new Date();
+
+          // Запускаємо або скидаємо таймер
+          startOrResetTimer(timeDifference);
+
+          // Оновлюємо стани
+          setWallet(accounts[0]);
+          setBalance(accountBalance);
+          setContract(contractInstance);
+          setBets(bets);
+        } catch (error) {
+          console.log("Помилка підключення:", error);
+        }
+      } else {
+        console.log("Pelagus Wallet не знайдено.");
+      }
+    };
+
+    initContract(); // Викликаємо функцію при завантаженні компонента
+  }, []); // Запускається тільки один раз після завантаження компонента
+
+  useEffect(() => {
+    const initContract = async () => {
+      if (window.pelagus && window.pelagus.request) {
+        try {
+          // Підключення гаманця
+          const accounts = await window.pelagus.request({
+            method: "quai_requestAccounts",
+          });
+
+          setWallet(accounts[0]);
+
+          // Ініціалізація контракту
+          const provider = new quais.BrowserProvider(window.pelagus);
           const signer = await provider.getSigner();
 
           const contractInstance = new quais.Contract(
@@ -37,22 +97,10 @@ function App() {
             signer
           );
 
-          const lastBetTime = await contractInstance.lastBetTime();
-
-          const bets = await getBets(contractInstance);
-
-          const timeDifference =
-            new Date(Number(lastBetTime) * 1000).getTime() +
-            3600000 -
-            new Date();
-
-          startOrResetTimer(timeDifference);
-          setWallet(accounts[0]);
-          setBalance(accountBalance);
           setContract(contractInstance);
-          setBets(bets);
+          console.log("Контракт підключено!");
         } catch (error) {
-          console.log("Помилка підключення:", error);
+          console.error("Помилка підключення до контракту:", error);
         }
       } else {
         console.log("Pelagus Wallet не знайдено.");
@@ -92,17 +140,17 @@ function App() {
     if (window.pelagus && window.pelagus.request) {
       try {
         const accounts = await window.pelagus.request({
-          method: "quai_requestAccounts", // Використовуємо правильний метод
+          method: "quai_requestAccounts",
         });
-        const accountBalance = await getBalance(accounts[0]); // Оновлюємо баланс
-        setWallet(accounts[0]); // Зберігаємо адресу гаманця
-        setBalance(accountBalance); // Оновлюємо баланс
-        console.log(accounts);
+        localStorage.setItem("wallet", accounts[0]); // Зберігаємо гаманець
+        const accountBalance = await getBalance(accounts[0]);
+        setWallet(accounts[0]);
+        setBalance(accountBalance);
       } catch (error) {
-        console.error("Error connecting to Pelagus Wallet:", error);
+        console.error("Помилка підключення до Pelagus Wallet:", error);
       }
     } else {
-      alert("Pelagus Wallet не  знайдено");
+      alert("Pelagus Wallet не знайдено");
     }
   };
 
