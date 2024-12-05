@@ -2,79 +2,155 @@ import React, { useState, useEffect, useRef } from "react";
 import { quais } from "quais";
 import "./App.css";
 import ScrollList from "./components/ScrollList";
-import getRandomItems from "./helpers/getRandomItems";
-import sendMoney from "./helpers/sendMoney";
 import logo from "./images/logo.png";
+import getBets from "./helpers/getBets";
+import getBetAmount from "./helpers/getBetAmount";
 
-const contractAddress = "0x004965c0500bd966E744dd5F4c2d38C7EbbFFC1f"; // Адреса розгорнутого контракту
+const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
 import contractABI from "./contractAbi.json";
 
 function App() {
   const [wallet, setWallet] = useState(null);
   const [balance, setBalance] = useState(null);
-  const [betAmount, setBetAmount] = useState(4);
   const [bets, setBets] = useState([]);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [contract, setContract] = useState(null);
   const timerRef = useRef(null);
-  const time = 60 * 1000; // 60 секунд
 
   useEffect(() => {
     const initContract = async () => {
-      console.log("Ініціалізація контракту...");
       if (window.pelagus && window.pelagus.request) {
         try {
-          console.log("Pelagus Wallet знайдено...");
+          // Отримуємо акаунти з гаманця
           const accounts = await window.pelagus.request({
             method: "quai_requestAccounts",
           });
-          console.log("Акаунти отримано:", accounts);
 
+          if (accounts.length === 0) {
+            console.log("Гаманець не підключено");
+            return;
+          }
+
+          // Отримуємо баланс акаунту
           const accountBalance = await getBalance(accounts[0]);
-          console.log("Баланс отримано:", accountBalance);
 
+          // Ініціалізуємо провайдер та підключення до контракту
           const provider = new quais.BrowserProvider(window.pelagus);
-          console.log("Провайдер створено:", provider);
-
           const signer = await provider.getSigner();
-          console.log("Сігнер отримано:", signer);
+
+          // Створюємо інстанс контракту
+          const contractInstance = new quais.Contract(
+            contractAddress,
+            contractABI,
+            signer
+          );
+
+          // Отримуємо останній час ставки
+          const lastBetTime = await contractInstance.lastBetTime();
+
+          // Отримуємо ставки
+          const bets = await getBets(contractInstance);
+
+          // Розрахунок часу залишку для таймера
+          const timeDifference =
+            new Date(Number(lastBetTime) * 1000).getTime() +
+            3600000 - // Додаємо 1 годину
+            new Date();
+
+          // Запускаємо або скидаємо таймер
+          startOrResetTimer(timeDifference);
+
+          // Оновлюємо стани
+          setWallet(accounts[0]);
+          setBalance(accountBalance);
+          setContract(contractInstance);
+          setBets(bets);
+        } catch (error) {
+          console.log("Помилка підключення:", error);
+        }
+      } else {
+        console.log("Pelagus Wallet не знайдено.");
+      }
+    };
+
+    initContract(); // Викликаємо функцію при завантаженні компонента
+  }, []); // Запускається тільки один раз після завантаження компонента
+
+  useEffect(() => {
+    const initContract = async () => {
+      if (window.pelagus && window.pelagus.request) {
+        try {
+          // Підключення гаманця
+          const accounts = await window.pelagus.request({
+            method: "quai_requestAccounts",
+          });
+
+          setWallet(accounts[0]);
+
+          // Ініціалізація контракту
+          const provider = new quais.BrowserProvider(window.pelagus);
+          const signer = await provider.getSigner();
 
           const contractInstance = new quais.Contract(
             contractAddress,
             contractABI,
             signer
           );
-          console.log("Контракт підключено:", contractInstance);
 
-          setWallet(accounts[0]);
-          setBalance(accountBalance);
           setContract(contractInstance);
+          console.log("Контракт підключено!");
         } catch (error) {
-          console.error("Помилка підключення:", error);
+          console.error("Помилка підключення до контракту:", error);
         }
       } else {
-        console.error("Pelagus Wallet не знайдено.");
+        console.log("Pelagus Wallet не знайдено.");
       }
     };
 
     initContract();
   }, []);
 
+  useEffect(() => {
+    const fetchBetData = async () => {
+      try {
+        if (contract) {
+          const lastBetTime = await contract.lastBetTime();
+
+          const bets = await getBets(contract);
+
+          const timeDifference =
+            new Date(Number(lastBetTime) * 1000).getTime() +
+            3600000 -
+            new Date();
+
+          startOrResetTimer(timeDifference);
+          setBets(bets);
+        }
+      } catch (error) {
+        console.error("Error fetching bet data:", error);
+      }
+    };
+    fetchBetData();
+    const intervalId = setInterval(fetchBetData, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [contract]);
+
   const requestAccounts = async () => {
     if (window.pelagus && window.pelagus.request) {
       try {
         const accounts = await window.pelagus.request({
-          method: "quai_requestAccounts", // Використовуємо правильний метод
+          method: "quai_requestAccounts",
         });
-        const accountBalance = await getBalance(accounts[0]); // Оновлюємо баланс
-        setWallet(accounts[0]); // Зберігаємо адресу гаманця
-        setBalance(accountBalance); // Оновлюємо баланс
-        console.log(accounts);
+        localStorage.setItem("wallet", accounts[0]); // Зберігаємо гаманець
+        const accountBalance = await getBalance(accounts[0]);
+        setWallet(accounts[0]);
+        setBalance(accountBalance);
       } catch (error) {
-        console.error("Error connecting to Pelagus Wallet:", error);
+        console.error("Помилка підключення до Pelagus Wallet:", error);
       }
     } else {
-      alert("Pelagus Wallet не  знайдено");
+      alert("Pelagus Wallet не знайдено");
     }
   };
 
@@ -86,72 +162,73 @@ function App() {
     }
 
     try {
-      console.log("Початок розміщення ставки...");
-      const provider = new quais.BrowserProvider(window.pelagus);
-      console.log("Провайдер створено:", provider);
+      const betAmountInUnits = await getBetAmount(contract);
 
-      const signer = await provider.getSigner();
-      console.log("Сігнер отримано:", signer);
-
-      const contractInstance = new quais.Contract(
-        contractAddress,
-        contractABI,
-        signer
-      );
-      console.log("Контракт підключено:", contractInstance);
-
-      const betAmountInUnits = quais.parseUnits(betAmount.toString(), 18);
-      console.log("Сума ставки в одиницях:", betAmountInUnits);
-
-      console.log("Підготовка транзакції...");
-      const tx = await contractInstance.placeBet({
+      const tx = await contract.placeBet({
         value: betAmountInUnits,
         gasLimit: 300000,
       });
-      console.log("Транзакція ініційована:", tx);
 
-      console.log("Очікування підтвердження транзакції...");
-      const receipt = await tx.wait();
-      console.log("Транзакція підтверджена:", receipt);
-
+      await tx.wait();
       console.log("Ставка успішно розміщена");
 
-      // Оновлення ставок
-      setBets((prevBets) => [
-        ...prevBets,
-        {
-          wallet: wallet,
-          amount: betAmount,
-          time: Date.now(),
-        },
-      ]);
+      const updatedBalance = await getBalance(wallet);
+      setBalance(updatedBalance);
+      console.log("Оновлений баланс:", updatedBalance);
+
+      const bets = await getBets(contract);
+      setBets(bets);
+
+      startOrResetTimer(3600 * 1000);
     } catch (error) {
-      console.error("Помилка під час розміщення ставки:", error);
+      console.log("Помилка під час розміщення ставки:", error);
       if (error.code === "ACTION_REJECTED") {
-        alert("Користувач відхилив транзакцію");
+        console.log("Користувач скасував транзакцію.");
       } else {
-        alert("Помилка під час розм іщення ставки. Спробуйте ще раз.");
+        console.log("Сталася помилка:", error);
       }
     }
   };
 
-  const startOrResetTimer = () => {
+  const startOrResetTimer = (dynamicTime) => {
     clearInterval(timerRef.current);
-    setTimeLeft(60); // Задаємо 60 секунд на старті
 
-    console.log("Таймер запущено: 1:00"); // Лог для перевірки старту
+    setTimeLeft(dynamicTime);
 
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
-        console.log(`Час залишився: ${prev}`); // Лог для перевірки, як змінюється час
         if (prev > 0) {
-          return prev - 1;
+          return prev - 1000;
         } else {
           clearInterval(timerRef.current);
+          endGame();
+
           return 0;
         }
       });
     }, 1000);
+  };
+
+  const endGame = async () => {
+    if (!contract) {
+      console.error("Контракт не підключено");
+      alert("Контракт не підключено");
+      return;
+    }
+
+    try {
+      const tx = await contract.endGame({ gasLimit: 300000 });
+      await tx.wait();
+      console.log("Гра завершена успішно. Виплати здійснено.");
+      alert("Гра завершена успішно!");
+    } catch (error) {
+      console.error("Помилка під час завершення гри:", error);
+      if (error.code === "ACTION_REJECTED") {
+        alert("Користувач відхилив транзакцію");
+      } else {
+        alert("Помилка під час завершення гри. Спробуйте ще раз.");
+      }
+    }
   };
 
   // Функція для отримання балансу
@@ -224,14 +301,7 @@ function App() {
                 <span
                   className="
       text-sm
-      
-      
-      
-      
       text-white
-      
-      
-      
        font-silkscreen "
                 >
                   {balance !== null
