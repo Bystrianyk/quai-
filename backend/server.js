@@ -1,28 +1,34 @@
+require("dotenv").config(); // Переконайтеся, що шлях до .env правильний
+
 const quais = require("quais");
 const express = require("express");
-require("dotenv").config();
 const { JsonRpcProvider, Contract, Wallet } = require("quais");
 const contractAbi = require("./contractAbi.json");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Провайдер та підписувач
-const provider = new JsonRpcProvider("https://rpc.dev.quai.network");
-const privateKey = process.env.CYPRUS1_PK; // Ваш приватний ключ у .env файлі
+// Провайдер та гаманець
+const provider = new JsonRpcProvider("https://rpc.quai.network");
+const privateKey = process.env.CYPRUS1_PK; // Приватний ключ
 const wallet = new Wallet(privateKey, provider);
 
-// Адреса контракту з .env
-const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
+// Адреса контракту
+const contractAddress = process.env.CONTRACT_ADDRESS;
+if (!contractAddress) {
+  throw new Error("Contract address is not defined in .env file");
+}
+
+console.log("Contract Address from .env:", contractAddress);
 
 // Логіка перевірки та завершення гри
 const checkAndEndGame = async () => {
   try {
-    // Підключення до контракту
+    console.log("Connecting to contract...");
     const contract = new Contract(contractAddress, contractAbi, wallet);
 
-    // Отримання часу останньої ставки
-    const lastBetTime = await contract.lastBetTime();
+    console.log("Getting last bet time...");
+    const lastBetTime = await contract.lastBetTime(); // Виклик функції
     console.log("Last Bet Time:", lastBetTime.toString());
 
     const lastBetDate = new Date(Number(lastBetTime) * 1000); // Переводимо у мілісекунди
@@ -32,15 +38,13 @@ const checkAndEndGame = async () => {
     console.log("Current time:", now);
     console.log("Allowed end time:", lastBetDate);
 
-    // Перевірка, чи час завершити гру
+    // Якщо час завершити гру
     if (now >= lastBetDate) {
       console.log("Calling endGame function...");
-
-      // Викликаємо `endGame` і чекаємо на транзакцію
-      const tx = await contract.endGame();
+      const tx = await contract.endGame(); // Виклик функції запису
       console.log("Transaction sent. Waiting for confirmation...");
 
-      const receipt = await tx.wait();
+      const receipt = await tx.wait(); // Чекаємо завершення транзакції
       console.log("Transaction mined:", receipt.transactionHash);
     } else {
       console.log("Not yet time to end the game.");

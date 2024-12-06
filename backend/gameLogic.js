@@ -1,39 +1,65 @@
-// backend/gameLogic.js
-const db = require("./db");
+require("dotenv").config(); // Переконайтеся, що шлях до .env правильний
 
-let currentBet = 1; // Початкова ставка
+const quais = require("quais");
+const express = require("express");
+const { JsonRpcProvider, Contract, Wallet } = require("quais");
+const contractAbi = require("./contractAbi.json");
 
-module.exports.placeBet = async (req, res) => {
-    const { playerId, betAmount } = req.body;
+const app = express();
+const port = process.env.PORT || 3000;
 
-    if (betAmount < currentBet) {
-        return res.status(400).json({ success: false, message: "Недостатня ставка" });
+// Провайдер та гаманець
+const provider = new JsonRpcProvider("https://rpc.dev.quai.network");
+const privateKey = process.env.CYPRUS1_PK; // Приватний ключ
+const wallet = new Wallet(privateKey, provider);
+
+// Адреса контракту
+const contractAddress = process.env.CONTRACT_ADDRESS;
+if (!contractAddress) {
+  throw new Error("Contract address is not defined in .env file");
+}
+
+console.log("Contract Address from .env:", contractAddress);
+
+// Логіка перевірки та завершення гри
+const checkAndEndGame = async () => {
+  try {
+    console.log("Connecting to contract...");
+    const contract = new Contract(contractAddress, contractAbi, wallet);
+
+    console.log("Getting last bet time...");
+    const lastBetTime = await contract.lastBetTime(); // Виклик функції
+    console.log("Last Bet Time:", lastBetTime.toString());
+
+    const lastBetDate = new Date(Number(lastBetTime) * 1000); // Переводимо у мілісекунди
+    lastBetDate.setHours(lastBetDate.getHours() + 1);
+
+    const now = new Date();
+    console.log("Current time:", now);
+    console.log("Allowed end time:", lastBetDate);
+
+    // Якщо час завершити гру
+    if (now >= lastBetDate) {
+      console.log("Calling endGame function...");
+      const tx = await contract.endGame(); // Виклик функції запису
+      console.log("Transaction sent. Waiting for confirmation...");
+
+      const receipt = await tx.wait(); // Чекаємо завершення транзакції
+      console.log("Transaction mined:", receipt.transactionHash);
+    } else {
+      console.log("Not yet time to end the game.");
     }
-
-    await db.saveBet(playerId, betAmount);
-
-    currentBet++; // Збільшення ставки для наступного гравця
-
-    res.json({ success: true, message: "Ставка прийнята" });
+  } catch (error) {
+    console.error("Error during the check or calling endGame:", error);
+  }
 };
 
-module.exports.endGame = async (req, res) => {
-    const allBets = await db.getAllBets();
-    const totalTokens = allBets.reduce((acc, bet) => acc + bet.amount, 0);
+// Інтервал перевірки (2 секунди)
+setInterval(async () => {
+  await checkAndEndGame();
+}, 2000);
 
-    const winner = allBets[allBets.length - 1].playerId;
-    const lastNine = allBets.slice(-9);
-
-    const winnerPayout = totalTokens * 0.6;
-    const lastNinePayout = (totalTokens * 0.3) / lastNine.length;
-    const devFee = totalTokens * 0.1;
-
-    await db.updateBalance("0x000c3877DE5ae7B74b2dd8afD54B306D9c43fD80", devFee);
-    await db.updateBalance(winner, winnerPayout);
-
-    for (let bet of lastNine) {
-        await db.updateBalance(bet.playerId, lastNinePayout);
-    }
-
-    res.json({ success: true, message: "Гра завершена", winner, totalTokens });
-};
+// Запуск сервера
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
