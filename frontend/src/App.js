@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { JsonRpcProvider, Contract } from 'quais'
 import { quais } from 'quais'
 import './App.css'
 import ScrollList from './components/ScrollList'
@@ -19,38 +20,27 @@ function App() {
 
   useEffect(() => {
     const initContract = async () => {
-      if (window.pelagus && window.pelagus.request) {
-        try {
-          const accounts = await window.pelagus.request({
-            method: 'quai_requestAccounts',
-          })
+      try {
+        console.log('Initializing contract...')
+        const provider = new JsonRpcProvider('https://rpc.quai.network') // Підключення до RPC
+        const contractInstance = new Contract(contractAddress, contractABI, provider)
+        console.log('Contract instance created successfully.')
 
-          const accountBalance = await getBalance(accounts[0])
+        // Отримання початкових даних
+        const lastBetTime = await contractInstance.lastBetTime()
+        console.log('Last bet time:', lastBetTime)
+        const bets = await getBets(contractInstance)
+        console.log('Bets:', bets)
 
-          const provider = new quais.JsonRpcProvider('https://rpc.quai.network')
+        // Розрахунок часу до кінця гри
+        const timeDifference = new Date(Number(lastBetTime) * 1000).getTime() + 3600000 - new Date().getTime()
+        setTimeLeft(timeDifference)
 
-          const signer = await provider.getSigner()
-
-          try {
-            const lastBetTime = await contractInstance.lastBetTime()
-          } catch (error) {
-            console.error('Помилка під час отримання даних контракту:', error)
-            alert('Контракт тимчасово недоступний. Спробуйте пізніше.')
-          }
-          const bets = await getBets(contractInstance)
-
-          const timeDifference = new Date(Number(lastBetTime) * 1000).getTime() + 3600000 - new Date()
-
-          startOrResetTimer(timeDifference)
-          setWallet(accounts[0])
-          setBalance(accountBalance)
-          setContract(contractInstance)
-          setBets(bets)
-        } catch (error) {
-          console.log('Помилка підключення:', error)
-        }
-      } else {
-        console.log('Pelagus Wallet не знайдено.')
+        setContract(contractInstance)
+        setBets(bets)
+        console.log('Contract and bets set.')
+      } catch (error) {
+        console.error('Ініціалізація не вдалася:', error)
       }
     }
 
