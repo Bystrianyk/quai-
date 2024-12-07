@@ -21,26 +21,28 @@ if (!contractAddress) {
 console.log('Contract Address from .env:', contractAddress)
 
 // Логіка перевірки та завершення гри
+let gameEnded = false // Змінна для відстеження статусу гри
+
 const checkAndEndGame = async () => {
   try {
     console.log('Connecting to contract...')
     const contract = new Contract(contractAddress, contractAbi, wallet)
 
     console.log('Checking if there are any bets...')
-    const betCount = await contract.getBetCount() // Припустимо, що є функція для підрахунку ставок
+    const betCount = await contract.getBetCount()
     console.log('Bet count:', betCount.toString())
 
-    // Якщо немає ставок, то нічого не робимо
+    // Якщо немає ставок або гра вже завершена, нічого не робимо
     if (betCount.toString() === '0') {
-      console.log('No bets placed, no need to end the game.')
+      console.log('No bets placed, skipping...')
       return
     }
 
     console.log('Getting last bet time...')
-    const lastBetTime = await contract.lastBetTime() // Виклик функції
+    const lastBetTime = await contract.lastBetTime()
     console.log('Last Bet Time:', lastBetTime.toString())
 
-    const lastBetDate = new Date(Number(lastBetTime) * 1000) // Переводимо у мілісекунди
+    const lastBetDate = new Date(Number(lastBetTime) * 1000)
     lastBetDate.setHours(lastBetDate.getHours() + 1)
 
     const now = new Date()
@@ -49,26 +51,35 @@ const checkAndEndGame = async () => {
 
     // Якщо час завершити гру
     if (now >= lastBetDate) {
-      console.log('Calling endGame function...')
-      const tx = await contract.endGame() // Виклик функції запису
-      console.log('Transaction sent. Waiting for confirmation...')
+      if (!gameEnded) {
+        console.log('Calling endGame function...')
+        const tx = await contract.endGame() // Викликаємо функцію завершення гри
+        console.log('Transaction sent. Waiting for confirmation...')
 
-      const receipt = await tx.wait() // Чекаємо завершення транзакції
-      console.log('Transaction mined:', receipt.transactionHash)
+        const receipt = await tx.wait() // Чекаємо на підтвердження
+        console.log('Transaction mined:', receipt.transactionHash)
+
+        gameEnded = true // Оновлюємо статус, що гра завершена
+      } else {
+        console.log('Game already ended.')
+      }
     } else {
       console.log('Not yet time to end the game.')
+    }
+
+    // Якщо з'явилась нова ставка, то скидаємо статус гри
+    if (betCount.toString() > 0 && gameEnded) {
+      console.log('New bet detected, resetting game status...')
+      gameEnded = false // Скидаємо статус гри для нового раунду
     }
   } catch (error) {
     console.error('Error during the check or calling endGame:', error)
   }
 }
 
-// Інтервал перевірки (2 секунди)
-setInterval(async () => {
-  await checkAndEndGame()
-}, 2000)
+// Запуск перевірки кожні 5 хвилин (час можна налаштувати)
+setInterval(checkAndEndGame, 1000)
 
-// Запуск сервера
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`)
+  console.log(`Server running at http://localhost:${port}`)
 })

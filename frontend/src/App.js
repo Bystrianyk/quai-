@@ -17,26 +17,31 @@ function App() {
   const [timeLeft, setTimeLeft] = useState(0)
   const [contract, setContract] = useState(null)
   const timerRef = useRef(null)
+  const [betAmount, setBetAmount] = useState(2)
 
   useEffect(() => {
     const initContract = async () => {
       try {
         console.log('Initializing contract...')
-        const provider = new JsonRpcProvider('https://rpc.quai.network') // Підключення до RPC
-        const contractInstance = new Contract(contractAddress, contractABI, provider)
-        console.log('Contract instance created successfully.')
+
+        // Підключення до мережі через JsonRpcProvider (вказати правильний RPC URL)
+        const provider = new JsonRpcProvider('https://rpc.quai.network')
+
+        // Підключення до контракту
+        const contract = new Contract(contractAddress, contractABI, provider)
 
         // Отримання початкових даних
-        const lastBetTime = await contractInstance.lastBetTime()
+        const lastBetTime = await contract.lastBetTime()
         console.log('Last bet time:', lastBetTime)
-        const bets = await getBets(contractInstance)
+        const bets = await getBets(contract) // Функція для отримання ставок
         console.log('Bets:', bets)
 
         // Розрахунок часу до кінця гри
         const timeDifference = new Date(Number(lastBetTime) * 1000).getTime() + 3600000 - new Date().getTime()
         setTimeLeft(timeDifference)
 
-        setContract(contractInstance)
+        // Збереження стану контракту та ставок
+        setContract(contract)
         setBets(bets)
         console.log('Contract and bets set.')
       } catch (error) {
@@ -90,37 +95,45 @@ function App() {
 
   const placeBet = async () => {
     if (!contract) {
-      console.error('Контракт не підключено')
       alert('Контракт не підключено')
       return
     }
 
     try {
+      // Створення провайдера
+      const provider = new quais.BrowserProvider(window.pelagus) // Використовуємо гаманець Pelagus
+      const signer = await provider.getSigner() // Отримуємо підписувача
+
+      // Підключаємо контракт з підписувачем
+      const contractInstance = new quais.Contract(contractAddress, contractABI, signer)
+
+      // Переводимо ставку в одиниці (Quai має 18 десяткових розрядів)
       const betAmountInUnits = await getBetAmount(contract)
 
-      const tx = await contract.placeBet({
-        value: betAmountInUnits,
-        gasLimit: 300000,
-      })
+      // Відправляємо транзакцію
+      const tx = await contractInstance.placeBet({ value: betAmountInUnits })
+      console.log('Транзакція ініційована, хеш:', tx.hash)
 
-      await tx.wait()
-      console.log('Ставка успішно розміщена')
+      // Очікуємо підтвердження транзакції
+      const receipt = await tx.wait()
+      console.log('Ставка успішно розміщена, receipt:', receipt)
 
+      // Оновлення ставок
+      setBets([
+        ...bets,
+        {
+          wallet: wallet, // Короткий формат адреси гаманця
+          amount: betAmount, // Сума ставки
+          time: Date.now(), // Поточний час
+        },
+      ])
+
+      // Оновлення балансу (якщо необхідно)
       const updatedBalance = await getBalance(wallet)
       setBalance(updatedBalance)
-      console.log('Оновлений баланс:', updatedBalance)
-
-      const bets = await getBets(contract)
-      setBets(bets)
-
-      startOrResetTimer(3600 * 1000)
     } catch (error) {
-      console.log('Помилка під час розміщення ставки:', error)
-      if (error.code === 'ACTION_REJECTED') {
-        console.log('Користувач скасував транзакцію.')
-      } else {
-        console.log('Сталася помилка:', error)
-      }
+      console.error('Помилка під час розміщення ставки:', error)
+      alert('Помилка під час розміщення ставки. Спробуйте ще раз.')
     }
   }
 
@@ -189,8 +202,13 @@ function App() {
 
   // Форматування часу для відображення
   const formatTime = (milliseconds) => {
+    if (milliseconds < 0) {
+      return '0:00' // Якщо значення менше 0, повертаємо порожній рядок
+    }
+
     const minutes = Math.floor(milliseconds / 60000)
     const seconds = ((milliseconds % 60000) / 1000).toFixed(0)
+
     return `${minutes}:${(seconds < 10 ? '0' : '') + seconds}`
   }
 

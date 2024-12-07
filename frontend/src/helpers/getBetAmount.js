@@ -1,6 +1,6 @@
 const getBetAmount = async (contractInstance) => {
-  const betAmount = await contractInstance.currentBetAmount();
-  return betAmount;
-};
+  const betAmount = await contractInstance.currentBetAmount()
+  return betAmount
+}
 
-export default getBetAmount;
+export default getBetAmount
