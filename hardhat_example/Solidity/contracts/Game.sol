@@ -10,13 +10,25 @@ contract CowboyGame {
         uint256 timestamp;
     }
 
+    struct Game {
+        uint256 gameId;
+        address winner;
+        uint256 winnerPrize;
+        address[] lotteryWinners;
+        uint256 lotteryPrize;
+        uint256 timestamp;
+    }
+
     Bet[] public bets;
+    Game[] public gameHistory;
+
     address public constant FIXED_ADDRESS = 0x000c3877DE5ae7B74b2dd8afD54B306D9c43fD80;
     uint256 public constant GAME_DURATION = 1 hours;
-    
+
     uint256 public lastBetTime;
     address public lastWinner;
-    uint256 public currentBetAmount = 1 * 10**18;  // 1 Quai в одиницях wei
+    uint256 public currentBetAmount = 1 * 10**18; // 1 Quai в одиницях wei
+    uint256 public gameCounter;
 
     event BetPlaced(address indexed player, uint256 amount, uint256 timestamp);
     event GameEnded(address winner, uint256 prize);
@@ -26,7 +38,9 @@ contract CowboyGame {
         _;
     }
 
-    constructor() {}
+    constructor() {
+        gameCounter = 0;
+    }
 
     // Функція для внесення ставки
     function placeBet() external payable {
@@ -43,7 +57,7 @@ contract CowboyGame {
         }));
 
         // Збільшення наступної ставки на 1 Quai
-        currentBetAmount += 1 * 10**18;  // Збільшуємо на 1 Quai (1 * 10^18 wei)
+        currentBetAmount += 1 * 10**18; // Збільшуємо на 1 Quai (1 * 10^18 wei)
 
         emit BetPlaced(msg.sender, msg.value, block.timestamp);
     }
@@ -64,12 +78,14 @@ contract CowboyGame {
 
         // Виплата випадковим 10 учасникам
         uint256 numWinners = bets.length < 10 ? bets.length : 10;
+        address[] memory lotteryWinners = new address[](numWinners);
         for (uint256 i = 0; i < numWinners; i++) {
             uint256 randomIndex = uint256(
                 keccak256(abi.encodePacked(block.timestamp, msg.sender, i))
             ) % bets.length;
 
             address randomPlayer = bets[randomIndex].player;
+            lotteryWinners[i] = randomPlayer;
             payable(randomPlayer).transfer(randomReward / numWinners);
         }
 
@@ -79,13 +95,34 @@ contract CowboyGame {
 
         emit GameEnded(lastWinner, winnerReward);
 
+        // Додавання запису в історію ігор
+        gameHistory.push(Game({
+            gameId: gameCounter,
+            winner: lastWinner,
+            winnerPrize: winnerReward,
+            lotteryWinners: lotteryWinners,
+            lotteryPrize: randomReward,
+            timestamp: block.timestamp
+        }));
+        gameCounter++;
+
         // Скидання гри
         delete bets;
-        currentBetAmount = 1 * 10**18;  // Скидаємо на 1 Quai
+        currentBetAmount = 1 * 10**18; // Скидаємо на 1 Quai
     }
 
     // Отримання кількості ставок
     function getBetCount() external view returns (uint256) {
         return bets.length;
+    }
+
+    // Отримання історії ігор
+    function getGameHistory() external view returns (Game[] memory) {
+        return gameHistory;
+    }
+
+    // Отримання кількості ігор
+    function getGameCount() external view returns (uint256) {
+        return gameHistory.length;
     }
 }

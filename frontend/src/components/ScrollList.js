@@ -1,127 +1,114 @@
-import React, { useState, useEffect } from "react";
-import styled from "styled-components";
+import React, { useState } from 'react'
+import styled from 'styled-components'
 
 const ScrollableContainer = styled.div`
   height: 600px;
   margin: 0 auto;
   overflow-y: auto;
   background-color: #222437;
-`;
+`
 
 const TableHeader = styled.div`
   height: 78px;
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   position: sticky;
   top: 0;
   background-color: #222437;
   z-index: 1;
   padding: 10px;
   font-weight: bold;
-  justify-content: space-between;
-  align-items: center;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-`;
+`
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 16px;
+`
+
+const FilterButton = styled.button`
+  background: none;
+  border: none;
+  color: ${(props) => (props.active ? '#00ff00' : '#aaa')};
+  font-family: 'Silkscreen', sans-serif;
+  font-size: 16px;
+  cursor: pointer;
+
+  &:hover {
+    color: #fff;
+  }
+`
 
 const BetItem = styled.div`
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   padding: 8px;
-  margin-top: 10px; /* Зовнішній відступ зверху */
-  margin-bottom: 10px; /* Зовнішній відступ знизу */
-  background-color: #1c1e2f; /* Колір фону рядка */
-  border-radius: 4px; /* Додаткове округлення країв, якщо потрібно */
+  margin-top: 10px;
+  background-color: #1c1e2f;
+  border-radius: 4px;
 
   &:hover {
-    background-color: #f1f1f1;
+    background-color: #333;
   }
-`;
+`
 
-const PlayerAddress = styled.span`
-  font-weight: bold;
-  color: #333;
-`;
+const WinnersItem = ({ game }) => {
+  return (
+    <BetItem>
+      <p>
+        👑 WINNER: {game.winner.slice(0, 6)}...{game.winner.slice(-4)}
+      </p>
+      <p>🏆 Prize: {game.winnerPrize} Quai</p>
+      <p>
+        🎟️ LOTTERY WINNER: {game.lotteryWinner.slice(0, 6)}...{game.lotteryWinner.slice(-4)}
+      </p>
+      <p>🏅 Prize: {game.lotteryPrize} Quai</p>
+      <p>{game.timeAgo} ago</p>
+    </BetItem>
+  )
+}
 
 const ScrollList = (props) => {
-  const { list } = props;
+  const { list, winners } = props // Дані передаються через пропси
+  const [filter, setFilter] = useState('latest') // Контроль активного фільтру
 
-  const shortenAddress = (address) => {
-    return address.slice(0, 6) + "..." + address.slice(-4);
-  };
-
-  const timeAgo = (time) => {
-    const seconds = Math.floor((new Date() - new Date(time)) / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-
-    if (hours > 0) {
-      return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  // Фільтрація списку відповідно до обраного фільтру
+  const filterBets = () => {
+    if (filter === 'winners') {
+      return Array.isArray(winners) ? winners : []
     }
-    if (minutes > 0) {
-      return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-    }
-    return `${seconds} second${seconds > 1 ? "s" : ""} ago`;
-  };
-
-  const getUpdatedTime = (time) => {
-    return timeAgo(time);
-  };
-
-  // Set up a state for current time
-  const [currentTime, setCurrentTime] = useState(Date.now());
-
-  // Use useEffect to update the time every second
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setCurrentTime(Date.now()); // Update the current time every second
-    }, 1000);
-
-    // Clean up the interval when the component unmounts
-    return () => clearInterval(intervalId);
-  }, []);
+    return Array.isArray(list) ? list : []
+  }
 
   return (
-    <div className="font-silkscreen text-white bg-newBlue-500 p-2 w-full">
+    <div className='font-silkscreen text-white bg-newBlue-500 p-2 w-full'>
       <ScrollableContainer>
         <TableHeader>
-          <div>
-            <p className="text-lg text-white font-silkscreen">Cowboy</p>
-          </div>
+          <p className='text-lg text-white font-silkscreen'>Cowboy</p>
+          <ButtonGroup>
+            <FilterButton active={filter === 'latest'} onClick={() => setFilter('latest')}>
+              Latest
+            </FilterButton>
+            <FilterButton active={filter === 'winners'} onClick={() => setFilter('winners')}>
+              Winners
+            </FilterButton>
+          </ButtonGroup>
         </TableHeader>
-        {list.map((bet, index) => (
-          <BetItem key={index} className="flex flex-col space-y-2">
-            <div className="flex sm:flex-row flex-col justify-between">
-              <div className="flex sm:flex-row flex-col sm:space-x-4">
-                <div>
-                  <p className="text-sm text-white font-silkscreen font-bold">
-                    {shortenAddress(bet.wallet)}
-                  </p>
-                </div>
-                <div>
-                  {index === 0 && (
-                    <p className="text-sm text-secondary font-silkscreen">
-                      👑 CURRENT LEADER
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-row space-x-2">
-                <div>
-                  <p className="text-sm text-white font-silkscreen">
-                    {bet.amount} Quai
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 font-silkscreen">
-                    {getUpdatedTime(bet.time)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </BetItem>
-        ))}
+        {filterBets().map((item, index) =>
+          filter === 'winners' ? (
+            <WinnersItem key={index} game={item} />
+          ) : (
+            <BetItem key={index}>
+              <p className='text-sm text-white font-silkscreen'>{item.wallet}</p>
+              <p className='text-sm text-white font-silkscreen'>{item.amount} Quai</p>
+              <p className='text-sm text-gray-500 font-silkscreen'>{item.timeAgo} ago</p>
+            </BetItem>
+          )
+        )}
       </ScrollableContainer>
     </div>
-  );
-};
+  )
+}
 
-export default ScrollList;
+export default ScrollList
